@@ -4,7 +4,7 @@
 
 Offline TOTP extension for Chrome and Edge. No network requests, no account, no cloud.
 
-[Repository](https://github.com/THEME26/mercury-2fa) · [Privacy policy](https://theme26.github.io/mercury-2fa/privacy.html) · [Store materials](docs/STORE.md) (Chinese)
+[Repository](https://github.com/THEME26/mercury-2fa) · [Privacy policy](https://theme26.github.io/mercury-2fa/privacy.html) · [Store materials](docs/STORE.md) · [中文](README.zh-CN.md)
 
 Current version **v0.7.2**: QR import, shared-seed warnings, DEK confined to the offscreen process, storage routed through the service worker, store icon and 1280×800 screenshots ready. No site permissions requested at install time.
 
@@ -239,7 +239,7 @@ Unpacked installs reference the build directory in place. `.output/chrome-mv3` a
 
 ## Store submission
 
-`npm run pack` produces the package with `manifest.json` at the archive root. Submission steps, listing copy, permission justifications, reviewer notes and the asset list are in `docs/STORE.md` (Chinese). The privacy policy page is `docs/privacy.html`, published at https://theme26.github.io/mercury-2fa/privacy.html.
+`npm run pack` produces the package with `manifest.json` at the archive root. Submission steps, listing copy, permission justifications, reviewer notes and the asset list are in `docs/STORE.md` ([Chinese](docs/STORE.zh-CN.md)). The privacy policy page is `docs/privacy.html`, published at https://theme26.github.io/mercury-2fa/privacy.html.
 
 ## Next steps
 

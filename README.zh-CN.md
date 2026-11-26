@@ -4,7 +4,7 @@
 
 离线的 2FA 验证码扩展，支持 Chrome 与 Edge。不联网、不注册账号、不上云。
 
-[仓库](https://github.com/THEME26/mercury-2fa) · [隐私政策](https://theme26.github.io/mercury-2fa/privacy.html) · [上架材料](docs/STORE.md)
+[仓库](https://github.com/THEME26/mercury-2fa) · [隐私政策](https://theme26.github.io/mercury-2fa/privacy.html) · [上架材料](docs/STORE.zh-CN.md)
 
 当前版本 **v0.7.2**：扫码导入、共用种子提醒、DEK 只在 offscreen 进程内存里，存储读写经 service worker 代理，已备齐商店图标与 1280×800 截图。安装时不申请任何站点权限。
 
@@ -238,13 +238,13 @@ npm run assets        # 生成图标与 1280×800 商店截图
 
 ## 上架
 
-安装包由 `npm run pack` 生成，`manifest.json` 位于压缩包根目录。提交流程、商店文案、权限理由、审核说明与素材清单见 `docs/STORE.md`；隐私政策页面为 `docs/privacy.html`，托管后把公开地址填入表单。
+安装包由 `npm run pack` 生成，`manifest.json` 位于压缩包根目录。提交流程、商店文案、权限理由、审核说明与素材清单见 `docs/STORE.zh-CN.md`（[英文版](docs/STORE.md)）；隐私政策页面为 `docs/privacy.html`，托管后把公开地址填入表单。
 
 ## 下一步
 
 1. 真机回归：GitHub、Google、AWS、Cloudflare 四个登录页填通，十个只有密码框的页面零误填
 2. 真机确认剪贴板 30 秒后确实被清空，以及锁定、重启、休眠三种情况下密钥不残留
-3. 双商店提交（材料见 `docs/STORE.md`，隐私政策见 `docs/privacy.html`）
+3. 双商店提交（材料见 `docs/STORE.zh-CN.md`，隐私政策见 `docs/privacy.html`）
 4. 可选开启常驻内容脚本，换取页面加载即挂标的零点击体验
 
 ## 许可证

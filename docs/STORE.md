@@ -1,28 +1,57 @@
-# Edge 上架材料与提交流程
+# Edge Store Submission: Materials and Steps
 
-版本 0.7.2。本文件按「逐项复制进表单」组织，代码变更后回来同步。
+Version 0.7.2. Each block below can be copied into the Partner Center form as it stands. Update this file whenever the extension changes.
 
-## 一、基本信息
+**English** | [简体中文](STORE.zh-CN.md)
 
-| 字段 | 值 |
+## 1. Basic information
+
+| Field | Value |
 |---|---|
-| 名称（取自 manifest，不可改） | Mercury 2FA |
-| 版本 | 0.7.2 |
-| 类别 | Productivity |
-| 语言 | 中文（简体） |
-| 单一用途 | 在本机生成并填写两步验证验证码 |
+| Name (from manifest, not editable) | Mercury 2FA |
+| Version | 0.7.2 |
+| Category | Productivity |
+| Language | Simplified Chinese (the in-extension UI); see the note under §2 |
+| Single purpose | Generate and fill two-factor codes on the local device |
 
-单一用途陈述（商店要求，须窄）：
+Single purpose statement (the store requires it to be narrow):
 
-> 生成基于时间的一次性验证码（TOTP）并填入登录页面，数据只存本机。
+> Generate time-based one-time passwords (TOTP) and fill them into sign-in pages. All data stays on the local device.
 
-## 二、商店文案
+## 2. Store listing copy
 
-简短描述（132 字符内）：
+The in-extension UI is Simplified Chinese, so the Chinese copy below is the one to submit today. The English copy is kept ready for an English listing once the UI is localized.
+
+### Short description (132 characters or fewer)
+
+> Offline TOTP authenticator. No network, no account, no site permissions. Codes generated locally and autofilled into login pages.
+
+Chinese:
 
 > 离线的两步验证码管理器。不联网、不注册、零站点权限，验证码本地生成，可一键填入登录页。
 
-详细描述（250–10000 字符）：
+### Detailed description (250–10000 characters)
+
+> Mercury 2FA does one thing: compute the six digits for two-factor sign-in and put them into the login field.
+>
+> It differs from other authenticator extensions in three ways:
+>
+> 1. No network. The extension contains no request to any external host; it keeps working with networking disabled.
+> 2. No site permissions. Only at the moment the toolbar icon is clicked does the browser hand over temporary write access to the current tab.
+> 3. Secrets never enter the UI process. Decryption and code generation run in a separate background document; the popup only receives six digits.
+>
+> Features:
+>
+> - TOTP, HOTP and Steam codes
+> - Master password, Argon2id derivation, AES-GCM-256 encryption, auto-lock when idle
+> - QR import: capture the current page and decode the QR code locally
+> - Migration from Google Authenticator, Aegis, 2FAS, andOTP and Bitwarden
+> - Encrypted backup export and restore, with entry-count verification on restore
+> - Clipboard cleared on a timer after copying
+>
+> The master password cannot be recovered. Export a backup immediately after first use, and keep each service's recovery codes.
+
+Chinese:
 
 > Mercury 2FA 只做一件事：把两步验证的 6 位数字算出来，填入登录框。
 >
@@ -43,110 +72,101 @@
 >
 > 主密码不可找回。首次使用后立即导出备份，并保存各服务的恢复码。
 
-搜索词（7 个以内，每个 30 字符以内）：`2FA`、`TOTP`、`authenticator`、`验证码`、`两步验证`、`离线`、`OTP`
+### Search terms (at most 7, each 30 characters or fewer)
 
-## 三、权限理由（逐条填）
+`2FA`、`TOTP`、`authenticator`、`验证码`、`两步验证`、`离线`、`OTP`
 
-| 权限 | 提交文本 |
+## 3. Permission justifications (fill one per row)
+
+| Permission | Text to submit |
 |---|---|
-| `storage` | 保存经过 AES-GCM-256 加密的验证码种子与用户设置。无此权限无法持久化任何数据。 |
-| `clipboardWrite` | 用户点击条目时把 6 位验证码复制到剪贴板；到期后由后台页面清空，避免验证码长期留在剪贴板。 |
-| `idle` | 系统空闲或锁屏时立即从内存中丢弃解密密钥，缩短密钥暴露窗口。 |
-| `activeTab` | 仅在用户点击扩展图标后获得当前标签页的临时访问权，用于把验证码写入页面的验证码输入框。不使用时不产生任何访问。 |
-| `scripting` | 在 activeTab 授权范围内执行一段自包含函数，把验证码写入输入框并派发 input 事件。该函数不读取页面内容。 |
-| `alarms` | 两个定时任务：剪贴板到期清空、备份健康度检查（超过 30 天未导出时提示）。 |
-| `offscreen` | 在不可见的后台文档中完成 Argon2id 派生、解密与取码，使界面进程接触不到种子与密钥。 |
+| `storage` | Store TOTP secrets encrypted with AES-GCM-256, plus user settings. Without it nothing can be persisted. |
+| `clipboardWrite` | Copy the six-digit code to the clipboard when the user clicks an entry, then clear it on a timer from the background page so the code does not linger. |
+| `idle` | Drop the decryption key from memory as soon as the system goes idle or the screen locks, shortening the exposure window. |
+| `activeTab` | Grants temporary access to the current tab only after the user clicks the toolbar icon, in order to write the code into that page's verification field. No access occurs otherwise. |
+| `scripting` | Execute a self-contained function inside the activeTab grant that writes the code into the input and dispatches an input event. The function does not read page content. |
+| `alarms` | Two scheduled tasks: clearing the clipboard when it expires, and a backup health check that warns after 30 days without an export. |
+| `offscreen` | Run Argon2id derivation, decryption and code generation in an invisible background document so the UI process never touches secrets or keys. |
 
-站点权限：无。`host_permissions` 与 `content_scripts` 均未申请。
+Site permissions: none. Neither `host_permissions` nor `content_scripts` is requested.
 
-## 四、远程代码声明
+## 4. Remote code declaration
 
-表单问题「是否使用远程代码」的答案：否。
+Answer to "Does the extension use remote code": No.
 
-- 无 CDN 依赖，无 `eval`，无动态 `new Function`
-- WebAssembly 随扩展分发（`assets/zxing_reader-*.wasm`，946 KB），`locateFile` 指向扩展内资产，不从网络加载
-- 产物中若出现 `jsdelivr` 字样，来自 zxing-wasm 内置的兜底分支，本项目每次初始化都显式覆盖 `locateFile`，该分支不可达。核查方式：对照 `lib/qr-scan.ts` 的 `assetUrl()` 与产物里的 `locateFile`
+- No CDN dependency, no `eval`, no dynamic `new Function`
+- WebAssembly ships with the extension (`assets/zxing_reader-*.wasm`, 946 KB); `locateFile` points at an asset inside the package and never loads from the network
+- If the string `jsdelivr` appears in the bundle, it comes from a fallback branch inside zxing-wasm. Every initialization in this project overrides `locateFile` explicitly, so that branch is unreachable. To verify, compare `assetUrl()` in `lib/qr-scan.ts` with `locateFile` in the build output
 
-## 五、数据使用披露
+## 5. Data usage disclosure
 
-| 问题 | 答案 |
+| Question | Answer |
 |---|---|
-| 是否收集个人身份信息 | 否 |
-| 是否收集健康、财务、认证信息 | 否（种子存本机且加密，不上传） |
-| 是否收集位置、浏览历史、用户活动 | 否 |
-| 是否向第三方出售或传输数据 | 否 |
-| 是否用于广告或信用评估 | 否 |
-| 是否使用远程代码 | 否 |
+| Collect personally identifiable information | No |
+| Collect health, financial or authentication information | No (secrets stay on the device, encrypted, never uploaded) |
+| Collect location, browsing history or user activity | No |
+| Sell or transfer data to third parties | No |
+| Use data for advertising or credit assessment | No |
+| Use remote code | No |
 
-隐私政策页面：https://theme26.github.io/mercury-2fa/privacy.html （源文件 `docs/privacy.html`，经仓库 `docs/` 目录由 GitHub Pages 发布）。表单填这个地址。
+Privacy policy page: https://theme26.github.io/mercury-2fa/privacy.html — source file `docs/privacy.html`, published by GitHub Pages from the repository's `docs/` directory. Put this URL in the form.
 
-## 六、素材
+## 6. Assets
 
-### 1. 商店素材（已生成，可直接上传）
+### 6.1 Store assets (generated, ready to upload)
 
-| 用途 | 文件 | 规格 |
+| Purpose | File | Spec |
 |---|---|---|
-| 商店 Logo（必填） | `docs/store/logo-300.png` | 300 × 300 PNG |
-| 截图 1 列表 | `docs/store/shot-1-codes.png` | 1280 × 800 PNG |
-| 截图 2 导入 | `docs/store/shot-2-import.png` | 1280 × 800 PNG |
-| 截图 3 设置与备份 | `docs/store/shot-3-settings.png` | 1280 × 800 PNG |
-| 截图 4 锁定态 | `docs/store/shot-4-lock.png` | 1280 × 800 PNG |
-| 小推广图（可选） | `docs/store/promo-440x280.png` | 440 × 280 PNG |
-| 扩展内图标 | `public/icon/16.png` 等 4 个 | 16 / 32 / 48 / 128 |
+| Store logo (required) | `docs/store/logo-300.png` | 300 × 300 PNG |
+| Screenshot 1, code list | `docs/store/shot-1-codes.png` | 1280 × 800 PNG |
+| Screenshot 2, import | `docs/store/shot-2-import.png` | 1280 × 800 PNG |
+| Screenshot 3, settings and backup | `docs/store/shot-3-settings.png` | 1280 × 800 PNG |
+| Screenshot 4, locked state | `docs/store/shot-4-lock.png` | 1280 × 800 PNG |
+| Small promo tile (optional) | `docs/store/promo-440x280.png` | 440 × 280 PNG |
+| In-extension icons | `public/icon/16.png` and 3 more | 16 / 32 / 48 / 128 |
 
-重新生成：`npm run assets`（依赖 devDependency `sharp`；版式定义在 `tools/make-assets.mjs`）。
+Regenerate with `npm run assets` (devDependency `sharp`; layout lives in `tools/make-assets.mjs`).
 
-源图为 `docs/live/*.png`，由 `tools/shoot-store.mjs` 在真实 Edge 里加载构建产物后截取（4 倍图，无调试输出）。界面改动后的顺序：`npm run build:edge` → `npm run shots` → `npm run assets`。`npm run assets` 同时把干净版本覆盖到 `docs/list.png`、`docs/scan.png`、`docs/settings.png`、`docs/lock.png`，README 内嵌图随之更新。
+Source images are `docs/live/*.png`, captured by `tools/shoot-store.mjs`, which loads the build in a real Edge instance (4× scale, no debug output). After a UI change the order is `npm run build:edge` → `npm run shots` → `npm run assets`. `npm run assets` also overwrites `docs/list.png`, `docs/scan.png`, `docs/settings.png` and `docs/lock.png`, which the README embeds.
 
-### 2. 安装包
+The screenshots show the current Simplified Chinese UI. Retake them before submitting an English listing.
 
-| 项目 | 值 |
+### 6.2 Install package
+
+| Item | Value |
 |---|---|
-| 文件 | `.output/mercury-2fa-0.7.2-edge.zip` |
-| 大小 | 547 KB（解压后 1.33 MB） |
-| 结构 | `manifest.json` 在压缩包根目录，17 个文件，含 `licenses/` 三份许可证副本 |
-| 生成 | `npm run pack`（等价于 `wxt build -b edge && wxt zip -b edge`） |
+| File | `.output/mercury-2fa-0.7.2-edge.zip` |
+| Size | 547 KB (1.33 MB unpacked) |
+| Structure | `manifest.json` at the archive root, 17 files, including the three license copies under `licenses/` |
+| Build | `npm run pack` (equivalent to `wxt build -b edge && wxt zip -b edge`) |
 
-压缩包根目录必须是 `manifest.json`，不能多套一层文件夹，否则 Partner Center 解析失败。
+`manifest.json` must sit at the archive root, not inside an extra folder, or Partner Center fails to parse it.
 
-## 七、提交流程
+## 7. Submission steps
 
-1. 打开 `https://partner.microsoft.com/dashboard/microsoftedge`，用 Microsoft 账号登录。首次进入选择「注册 Microsoft Edge 计划」，注册免费，不需要信用卡。
-2. 「Edge 扩展」仪表板 → 新建扩展 → 上传 `.output/mercury-2fa-0.7.2-edge.zip`。系统解析 manifest，无红色报错即可继续。
-3. 属性（Properties）
-   - 类别：Productivity
-   - 隐私政策 URL：https://theme26.github.io/mercury-2fa/privacy.html
-   - 是否收集个人信息：否
-   - 成人内容：否
-   - 网站、支持联系人：可留空，建议填 GitHub 仓库地址
-4. 商店列表（Store listing）
-   - 显示名称：Mercury 2FA（取自 manifest）
-   - 简短描述、详细描述：抄第二、三节
-   - 商店 Logo：`logo-300.png`
-   - 截图：4 张 `shot-*.png`，顺序按列表、扫码、设置、锁定
-   - 小推广图：`promo-440x280.png`，可选
-   - 搜索词：第三节列的 7 个
-5. 可用性（Availability）：公开；市场选全部；不勾选定时发布。
-6. 审核说明（Notes for certification）：抄第八节。这段决定审核速度，审核员不知道主密码流程就会退回。
-7. 提交认证。审核周期 1–7 个工作日，结果发到账号邮箱。
-8. 通过后获得 `microsoftedge.microsoft.com/addons/detail/...` 链接。后续更新只需改版本号、重新 `npm run pack`、上传新包并重新提交，扩展 ID 不变。
+1. Open `https://partner.microsoft.com/dashboard/microsoftedge` and sign in with a Microsoft account. First-time visitors choose "Register for the Microsoft Edge program". Registration is free and needs no credit card.
+2. "Edge extensions" dashboard → New extension → upload `.output/mercury-2fa-0.7.2-edge.zip`. The system parses the manifest; continue once no red error appears.
+3. Properties
+   - Category: Productivity
+   - Privacy policy URL: https://theme26.github.io/mercury-2fa/privacy.html
+   - Collects personal information: No
+   - Adult content: No
+   - Website, support contact: may be left blank; the repository URL is a reasonable choice
+4. Store listing
+   - Display name: Mercury 2FA (from manifest)
+   - Short and detailed description: copy from §2
+   - Store logo: `logo-300.png`
+   - Screenshots: the four `shot-*.png`, in the order list, import, settings, lock
+   - Small promo tile: `promo-440x280.png`, optional
+   - Search terms: the seven listed in §2
+5. Availability: public; all markets; leave scheduled publishing unchecked.
+6. Notes for certification: copy from §8. This paragraph sets the review pace; a reviewer who does not know the master-password flow will send the submission back.
+7. Submit for certification. Review takes 1–7 business days; the result goes to the account email.
+8. Once approved you get a `microsoftedge.microsoft.com/addons/detail/...` link. Later updates only need a version bump, `npm run pack`, and a fresh upload; the extension ID does not change.
 
-## 八、审核说明
+## 8. Notes for certification
 
-中文版（提交框内可中英并列）：
-
-> 本扩展是离线的两步验证码生成器，不需要登录、不需要联网即可完成全部功能测试。
->
-> 测试步骤：
-> 1. 点击工具栏图标，首次打开显示「设置主密码」。输入任意 8 位以上密码并确认，派生耗时约 0.4 秒。
-> 2. 界面进入空列表。点右上角「＋」，在链接框粘贴 `otpauth://totp/GitHub:test?secret=JBSWY3DPEHPK3PXP&issuer=GitHub`，点保存。
-> 3. 列表出现一行 GitHub，右侧显示 6 位数字与倒计时进度条，每 30 秒刷新。点数字即复制。
-> 4. 点「设置」可看到自动锁定、剪贴板清空、更换主密码、导出备份。
-> 5. 点「立即锁定」回到密码界面，重新输入密码可解锁。
->
-> 说明：验证码由种子与当前时间计算，设备时钟与真实时间相差超过 30 秒时数字不会被任何服务接受，属 TOTP 协议特性。扩展全程不发起网络请求，可在断网环境验证。
-
-English version:
+English:
 
 > This extension is an offline TOTP authenticator. No sign-in and no network access are required to test every feature.
 >
@@ -159,39 +179,52 @@ English version:
 >
 > Note: codes are derived from the seed and the current time, so a device clock off by more than 30 s will produce codes no server accepts. The extension makes no network requests at all and works with networking disabled.
 
-## 九、隐私政策托管
+Chinese (the UI is Chinese, so this set may be submitted instead):
 
-已完成。
+> 本扩展是离线的两步验证码生成器，不需要登录、不需要联网即可完成全部功能测试。
+>
+> 测试步骤：
+> 1. 点击工具栏图标，首次打开显示「设置主密码」。输入任意 8 位以上密码并确认，派生耗时约 0.4 秒。
+> 2. 界面进入空列表。点右上角「＋」，在链接框粘贴 `otpauth://totp/GitHub:test?secret=JBSWY3DPEHPK3PXP&issuer=GitHub`，点保存。
+> 3. 列表出现一行 GitHub，右侧显示 6 位数字与倒计时进度条，每 30 秒刷新。点数字即复制。
+> 4. 点「设置」可看到自动锁定、剪贴板清空、更换主密码、导出备份。
+> 5. 点「立即锁定」回到密码界面，重新输入密码可解锁。
+>
+> 说明：验证码由种子与当前时间计算，设备时钟与真实时间相差超过 30 秒时数字不会被任何服务接受，属 TOTP 协议特性。扩展全程不发起网络请求，可在断网环境验证。
 
-| 项目 | 值 |
+## 9. Privacy policy hosting
+
+Done.
+
+| Item | Value |
 |---|---|
-| 仓库 | https://github.com/THEME26/mercury-2fa |
-| 页面 | https://theme26.github.io/mercury-2fa/privacy.html |
-| 发布方式 | GitHub Pages，源分支 `main`，目录 `/docs`，`build_type: legacy` |
-| 验证 | 未登录请求返回 200，`content-type: text/html`，正文含中英文两段 |
+| Repository | https://github.com/THEME26/mercury-2fa |
+| Page | https://theme26.github.io/mercury-2fa/privacy.html |
+| Publishing | GitHub Pages, source branch `main`, directory `/docs`, `build_type: legacy` |
+| Verification | Unauthenticated request returns 200, `content-type: text/html`, body carries both English and Chinese sections |
 
-页面随 `docs/` 目录一起发布，改动 `docs/privacy.html` 后提交并推送 `main`，Pages 约 1 分钟自动重建，无需再次配置。自有域名可在仓库 Settings → Pages 绑定 Custom domain，同时打开 Enforce HTTPS。
+The page ships with the `docs/` directory. After editing `docs/privacy.html`, commit and push to `main`; Pages rebuilds in about a minute with no further configuration. A custom domain can be bound under repository Settings → Pages, with Enforce HTTPS enabled.
 
-备案与内容合规不在本流程内。
+Filing and content compliance fall outside this process.
 
-## 十、提交前检查
+## 10. Pre-submission checklist
 
-- [x] `npm test` 147 项全通过
-- [x] `npm run compile` 0 错误
-- [x] `npm run build` 与 `npm run build:edge` 均成功
-- [x] `manifest.json` 无 `host_permissions`，无 `content_scripts`
-- [x] 图标 16 / 32 / 48 / 128 已入包
-- [x] 截图 4 张 1280 × 800，Logo 300 × 300
-- [x] ZIP 根目录为 `manifest.json`
-- [x] 隐私政策已托管，匿名可访问
-- [ ] Partner Center 账号已注册
-- [ ] 审核说明已粘贴
+- [x] `npm test` — all 147 tests pass
+- [x] `npm run compile` — 0 errors
+- [x] `npm run build` and `npm run build:edge` both succeed
+- [x] `manifest.json` has no `host_permissions` and no `content_scripts`
+- [x] Icons 16 / 32 / 48 / 128 are packaged
+- [x] Four screenshots at 1280 × 800, logo at 300 × 300
+- [x] ZIP root holds `manifest.json`
+- [x] Privacy policy hosted and reachable anonymously
+- [ ] Partner Center account registered
+- [ ] Certification notes pasted
 
-## 十一、常见退回原因
+## 11. Common rejection causes
 
-1. **权限理由过于笼统**：把「提升体验」换成具体动作，第三节已按此写。
-2. **描述与功能不符**：详细描述里出现扩展不具备的能力（如云同步、密码管理）会被要求修改。
-3. **隐私政策链接需要登录**：Gist 与私有仓库的 raw 链接都可能要求登录，用 Pages 或公开站点。
-4. **审核员无法进入主界面**：主密码是新设而非预设，审核说明必须写清「任意 8 位以上密码」。
-5. **远程代码误判**：产物含 wasm 时可能被追问，按第四节回答，指明 wasm 随包分发、`locateFile` 指向扩展内资产。
-6. **截图尺寸差 1 像素**：不接受非 1280 × 800 或 640 × 400 的图，用 `npm run assets` 生成而非截图工具裁切。
+1. **Vague permission justifications**: replace "improves the experience" with a concrete action. §3 is written that way.
+2. **Description out of step with features**: claiming cloud sync or password management, neither of which exists, draws a rewrite request.
+3. **Privacy policy link requires a login**: raw links to gists and private repositories can demand authentication. Use Pages or a public site.
+4. **Reviewer cannot reach the main screen**: the master password is set on first run rather than preset, so the notes must say "any password of 8+ characters".
+5. **Remote code suspicion**: a bundled wasm file can prompt follow-up questions. Answer per §4 — the wasm ships in the package, `locateFile` points at an in-package asset.
+6. **Screenshot off by one pixel**: only 1280 × 800 or 640 × 400 are accepted. Generate with `npm run assets` instead of cropping in a screenshot tool.

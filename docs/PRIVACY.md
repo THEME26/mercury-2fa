@@ -1,68 +1,42 @@
-# 隐私政策 · Privacy Policy
+# Privacy Policy
 
-Mercury 2FA（下称「本扩展」）
-最后更新：2026-11-27
+Mercury 2FA (the "extension")
+Last updated: 2026-11-27
 
-## 中文
+**English** | [简体中文](PRIVACY.zh-CN.md)
 
-### 一、本扩展收集哪些数据
-
-不收集。没有账号体系，没有分析埋点，没有崩溃上报，没有远程配置。
-
-### 二、数据存放在哪里
-
-验证码种子与设置只存在本机浏览器里：`chrome.storage.local` 中保存的是用主密码派生的密钥加密后的密文，明文只存在于后台页面的内存中，浏览器退出即消失。
-
-本扩展不具备任何把数据发往外部的代码路径：不申请 `host_permissions`，产物中没有向外部主机发起的网络请求。
-
-### 三、各项权限的用途
-
-| 权限 | 用途 |
-|---|---|
-| `storage` | 保存加密后的保险库与设置 |
-| `clipboardWrite` | 把验证码写入剪贴板，并在到期后清空 |
-| `idle` | 系统空闲或锁屏时立即丢弃内存中的密钥 |
-| `activeTab` | 用户点开扩展图标后，向当前标签页写入验证码 |
-| `scripting` | 执行上述写入动作所需的注入 |
-| `alarms` | 到期清空剪贴板的定时器、备份健康度检查 |
-| `offscreen` | 在后台页面完成解密与取码，使界面进程拿不到密钥 |
-
-本扩展不读取浏览历史、不读取网页内容、不申请任何站点权限。
-
-### 四、第三方
-
-不集成任何第三方 SDK、广告或统计服务。二维码识别使用随扩展分发的 zxing-wasm，本地运行，不联网。
-
-### 五、用户的权利
-
-数据完全在用户手中：随时可在设置里导出加密备份，或删除扩展（连同其存储）以彻底清除数据。主密码不可找回，遗失只能通过备份文件恢复。
-
-### 六、联系方式
-
-通过扩展商店页面的支持渠道反馈。
-
-## English
-
-### 1. Data we collect
+## 1. Data we collect
 
 None. No accounts, no analytics, no crash reporting, no remote configuration.
 
-### 2. Where data lives
+## 2. Where data lives
 
 Secrets and settings stay on the local device. `chrome.storage.local` holds only ciphertext encrypted with a key derived from your master password; plaintext exists only in the background page's memory and disappears when the browser exits.
 
-The extension has no code path that sends data anywhere: it requests no `host_permissions` and its bundle contains no requests to external hosts.
+The extension has no code path that sends data anywhere: it requests no `host_permissions` and its bundle contains no request to an external host.
 
-### 3. Permissions
+## 3. Permissions
 
-`storage` (encrypted vault and settings), `clipboardWrite` (copy a code and clear it later), `idle` (drop the key on idle or screen lock), `activeTab` (write a code into the current tab after you click the toolbar icon), `scripting` (perform that write), `alarms` (clipboard clearing and backup health checks), `offscreen` (decrypt in a background page so the UI process never holds the key).
+| Permission | Purpose |
+|---|---|
+| `storage` | Store the encrypted vault and settings |
+| `clipboardWrite` | Copy a code to the clipboard and clear it on expiry |
+| `idle` | Drop the key from memory when the system goes idle or the screen locks |
+| `activeTab` | Write a code into the current tab after the toolbar icon is clicked |
+| `scripting` | Perform that write |
+| `alarms` | Timer for clipboard clearing, backup health checks |
+| `offscreen` | Decrypt and generate codes in a background page so the UI process never holds the key |
 
 No browsing history, no page content, no site permissions.
 
-### 4. Third parties
+## 4. Third parties
 
-None. QR decoding uses zxing-wasm, bundled and executed locally.
+No third-party SDKs, advertising or analytics. QR decoding uses zxing-wasm, bundled with the extension and executed locally without network access.
 
-### 5. Your control
+## 5. Your control
 
-Export an encrypted backup at any time, or remove the extension to delete all its data. The master password cannot be recovered; a backup file is the only fallback.
+The data is entirely in your hands: export an encrypted backup from settings at any time, or remove the extension along with its storage to erase everything. The master password cannot be recovered; a backup file is the only fallback.
+
+## 6. Contact
+
+Use the support channel on the extension's store listing.
