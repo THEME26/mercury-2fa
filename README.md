@@ -2,90 +2,117 @@
 
 离线的 2FA 验证码扩展，支持 Chrome 与 Edge。不联网、不注册账号、不上云。
 
-当前进度：**v0.1 内核完成**，可本地加载试用。
+当前版本 **v0.4.0**：加密保险库、加密备份、批量导入、自动锁定全部可用，可以绑定真实账号。
 
-![popup](docs/screenshot-v0.1.png)
+| 首次设置 | 列表 |
+|---|---|
+| ![设置主密码](docs/screenshot-0.4-lock.png) | ![列表](docs/screenshot-0.4-list.png) |
 
-## 已完成
+## 已实现
 
 | 模块 | 内容 |
 |---|---|
-| 取码内核 | TOTP / HOTP / Steam，全部走 WebCrypto，无第三方加密库 |
-| 链接解析 | `otpauth://` 宽容解析，容忍大小写、缺省参数、issuer 只写在 label 里 |
-| 界面 | 条目列表、倒计时进度条、剩余 5 秒转红、一键复制、搜索、删除 |
-| 添加 | 粘贴 otpauth 链接自动填充表单，或手填种子 |
-| 打包 | 一份代码产出 `chrome-mv3` 与 `edge-mv3` 两套产物 |
+| 取码内核 | TOTP / HOTP / Steam，走 WebCrypto，无自研密码学 |
+| 加密 | Argon2id（hash-wasm）派生 KEK → 包住随机 DEK → AES-GCM-256 加密条目 |
+| 解锁 | 主密码解锁，空闲 5/15/30/60 分钟自动锁定，系统空闲或锁屏立刻丢弃 DEK |
+| 迁移 | 首次创建时自动把 v0.1 的明文库加密并入，原键删除 |
+| 条目 | 添加 / 删除 / 置顶 / STEAM 与 HOTP 变体 / 倒计时进度条 / 剩余 5 秒转红 |
+| 导入 | Google Authenticator 迁移码、Aegis、2FAS、andOTP、Bitwarden、otpauth 链接串 |
+| 备份 | 加密备份导出与恢复、更换主密码（只重封装 DEK，库体不重写） |
+| 自检 | 内置四项检查：往返解密、错误密码拒绝、密文篡改检测、派生耗时 |
 
 ## 验证结果
 
 | 项目 | 结果 |
 |---|---|
-| 单元测试 | 35 项全通过（`npm test`） |
-| RFC 4226 官方十组 HOTP 向量 | 全部匹配 |
-| RFC 6238 六组时点 × SHA1/SHA256/SHA512 | 18 组全部匹配 |
+| 单元测试 | 73 项全通过 |
+| RFC 4226 十组 HOTP 向量 | 全部匹配 |
+| RFC 6238 六时点 × SHA1/256/512 | 18 组全部匹配 |
+| 加密属性测试 | 错误密码拒绝、单字节篡改拒绝、IV 不重复、密文里搜不到明文 |
+| 迁移码解析 | 手工构造 protobuf 字节流，TOTP + HOTP 双条目解析正确 |
+| 浏览器实测 | 在无头 Chrome 里跑完整流程：设密码 → Argon2id 派生 → 建库 → 添加 → 取码 |
+| CSP 实测 | 在 `script-src 'self' 'wasm-unsafe-eval'` 下派生正常，无 wasm 拦截 |
 | 类型检查 | `tsc --noEmit` 0 错误 |
-| 产物体积 | 238 KB |
-| manifest 权限 | `storage`、`clipboardWrite`，无 `host_permissions` |
-| 扩展 ID | `phaaiimkjbieajjhclcdmbofgnmfhech`（由 `keys/pubkey.ts` 固定） |
+| 产物 | 324 KB，权限 `storage`、`idle`、`clipboardWrite`，无 `host_permissions` |
 
-RFC 6238 首组向量：种子 `12345678901234567890`，T = 59 秒，SHA-1 八位数输出 `94287082`，与实现一致。
+## 未实现（明确列出）
 
-## 目录
+| 项 | 卡在哪 |
+|---|---|
+| 自动填充 | 需要 `host_permissions` 或可选权限 + 真实登录页回归测试，盲写风险高于收益 |
+| 截图二维码导入 | 需要 `activeTab` + `captureVisibleTab` + zxing-wasm，另加约 1.5MB |
+| 剪贴板定时回清 | service worker 没有 DOM，需要 offscreen document |
+| 图标、i18n、双商店上架 | 收尾工程，功能稳定后再做 |
+
+## 安全模型
+
+防住：
+
+- 磁盘上的库：`chrome.storage.local` 里只有密文，攻击者拿到浏览器配置目录也解不开
+- 浏览器退出后的密钥：DEK 存在 `chrome.storage.session`（内存态），关浏览器即失
+- 挂着不用的会话：空闲超时、系统空闲、锁屏三处都会丢弃 DEK
+- 密码猜错与密文被改：AES-GCM 认证失败直接拒绝，不做任何降级
+- 主密码更换：只重封装 DEK，旧密码立即失效
+
+不防：
+
+- 解锁期间本机进程读扩展内存
+- 键盘记录器与剪贴板嗅探
+- 主密码忘记（没有后门，也没有找回流程，只有备份文件）
+- 恢复码丢失
+
+## 架构
 
 ```
-entrypoints/
-  background.ts        service worker，v0.2 起承接消息路由与 offscreen 生命周期
-  popup/
-    index.html
-    main.tsx           挂载
-    App.tsx            列表、倒计时、复制、开发版提示
-    AddForm.tsx        添加与 otpauth 解析
-    style.css
-lib/
-  base32.ts            宽容解码与编码
-  hotp.ts              HMAC、动态截断、HOTP、Steam
-  totp.ts              时间步与失效时刻
-  otpauth.ts           otpauth:// 解析
-  store.ts             storage.local 读写、去重、导出
-  types.ts
-tests/
-  totp.test.ts         RFC 4226 / 6238 向量 + 时间窗口
-  otpauth.test.ts      解析容错与非法输入
-keys/
-  pubkey.ts            扩展公钥（固定 ID）
-  chrome-key.pem       私钥，不入库，仅本机打包用
+entrypoints/popup      React 界面：锁屏、列表、添加、导入、设置
+entrypoints/background service worker：系统空闲/锁屏时丢弃 DEK
+lib/vault-service.ts   业务逻辑（可注入时钟与存储，全部单测覆盖）
+lib/crypto.ts          Argon2id + AES-GCM + 备份格式
+lib/crypto-host.ts     加密边界；换 offscreen 实现时上层不动
+lib/browser-store.ts   storage.local / storage.session 适配
+lib/importers.ts       GA protobuf、各家 JSON、otpauth 串
+lib/totp.ts …          取码内核
+tests/                 73 项
 ```
+
+**一处与最初设计的偏离**：DEK 现在放在 `chrome.storage.session`，没进 offscreen document。两者都是内存态、关浏览器即失、其他扩展与网页都读不到；session 存储省掉消息中转与生命周期管理，先把可用性做出来。等剪贴板回清或自动填充需要 offscreen 时，再把 `CryptoHost` 的实现换掉。
+
+## 数据格式
+
+```ts
+{
+  schemaVersion: 2,
+  kdf: { name: 'argon2id', m: 65536, t: 3, p: 1, salt: '<16B base64>' },
+  wrappedDek: { iv: '<12B>', data: '<AES-GCM 密文>' },
+  payload:    { iv: '<12B>', data: '<条目 JSON 的密文>' },
+  createdAt, updatedAt
+}
+```
+
+三档派生强度：低 19MiB/t=2（约 100ms）、中 64MiB/t=3（约 400ms）、高 256MiB/t=4（约 1.5s）。参数写在密文头里，换档只重封装密钥。
 
 ## 命令
 
 ```bash
 npm install
-npm test              # 跑 RFC 向量
+npm test              # 73 项，含 RFC 向量
 npm run compile       # tsc --noEmit
-npm run build         # 产出 .output/chrome-mv3
-npm run build:edge    # 产出 .output/edge-mv3
+npm run build         # .output/chrome-mv3
+npm run build:edge    # .output/edge-mv3
 ```
 
-## 本地加载
+## 加载与绑定 GitHub
 
-Chrome：打开 `chrome://extensions`，右上角开启「开发者模式」，点「加载已解压的扩展程序」，选 `D:\2FA_THEME26\.output\chrome-mv3`。
+1. `chrome://extensions` → 开发者模式 → 加载已解压 → `.output\chrome-mv3`
+2. 首次打开设主密码（建议中档），记录到密码管理器
+3. GitHub → Settings → Password and authentication → Enable 2FA → Authenticator app → **enter this text code**
+4. 扩展点 ＋，发行方 `GitHub`，账号填用户名，种子粘那串 32 位 setup key（空格会自动清掉）
+5. 复制 6 位码填回 GitHub，通过即绑定成功
+6. **立即到设置里导出加密备份**，并把 GitHub 的 recovery codes 存好
 
-Edge：打开 `edge://extensions`，左侧开启「开发人员模式」，点「加载解压缩的扩展」，选 `.output\edge-mv3`。
+## 下一步
 
-首次打开会看到一条明文存储提示，确认后进入列表。点右上角 ＋ 可以粘一条 `otpauth://` 链接试跑。
-
-## v0.1 的边界
-
-- 种子以明文写入 `chrome.storage.local`，只适合本机自测
-- 没有主密码、没有自动锁定
-- 没有导入导出界面（`exportVault()` 已实现，未接线）
-- 没有内容脚本，验证码靠点击复制
-- 没有图标，浏览器显示默认占位图
-
-## 下一步 v0.2
-
-1. Argon2id（wasm）+ AES-GCM-256，密文头带 kdf 参数与版本
-2. 解锁界面与自动锁定（5 / 15 / 30 分钟，`chrome.idle` 兜底）
-3. offscreen document 作为加密仓，popup 只拿验证码，拿不到种子
-4. 加密备份导出与导入
-5. 验收：关浏览器重开后必须重新输密码；磁盘上抓不到任何 base32 种子
+1. 自动填充（可选权限 + 内容脚本 + 识别打分），需要先在 10 个真实登录页上做回归
+2. 截图二维码导入（`captureVisibleTab` + zxing-wasm）
+3. offscreen 加密仓与剪贴板回清
+4. 双商店上架与 `_locales`

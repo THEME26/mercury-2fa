@@ -6,9 +6,12 @@ export default defineConfig({
   manifest: {
     name: 'Mercury 2FA',
     description: '离线 TOTP 验证码，零网络请求，不依赖任何账号。',
-    version: '0.1.0',
+    version: '0.4.0',
     key: EXTENSION_PUBLIC_KEY,
-    permissions: ['storage', 'clipboardWrite'],
+    permissions: ['storage', 'clipboardWrite', 'idle'],
+    content_security_policy: {
+      extension_pages: "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'",
+    },
     action: {
       default_title: 'Mercury 2FA',
     },

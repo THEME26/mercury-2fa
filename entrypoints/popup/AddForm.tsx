@@ -1,6 +1,7 @@
 import { useState } from 'react';
+import { toErrorMessage } from '../../lib/errors';
 import { isOtpAuthUri, parseOtpAuthUri } from '../../lib/otpauth';
-import { addEntry } from '../../lib/store';
+import { vaultService } from '../../lib/service-instance';
 import type { HmacAlgorithm, OtpType } from '../../lib/types';
 
 interface FormState {
@@ -62,7 +63,7 @@ export default function AddForm({ onAdded, onCancel }: { onAdded: () => void; on
     }
     setBusy(true);
     try {
-      await addEntry({
+      await vaultService.add({
         manual: {
           type: form.type,
           issuer: form.issuer,
@@ -76,7 +77,7 @@ export default function AddForm({ onAdded, onCancel }: { onAdded: () => void; on
       });
       onAdded();
     } catch (cause) {
-      setError((cause as Error).message);
+      setError(toErrorMessage(cause));
     } finally {
       setBusy(false);
     }

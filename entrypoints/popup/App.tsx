@@ -1,14 +1,13 @@
 import { useCallback, useEffect, useState } from 'react';
-import { acknowledgeDevMode, deleteEntry, isDevAcknowledged, listEntries } from '../../lib/store';
-import { steamTotp, totp } from '../../lib/totp';
-import type { OtpEntry } from '../../lib/types';
+import { toErrorMessage } from '../../lib/errors';
+import { vaultService } from '../../lib/service-instance';
+import type { EntryView, VaultStatus } from '../../lib/types';
 import AddForm from './AddForm';
+import ImportPanel from './ImportPanel';
+import LockScreen from './LockScreen';
+import SettingsPanel from './SettingsPanel';
 
-interface CodeState {
-  code: string;
-  expiresAt: number;
-  period: number;
-}
+type Screen = 'main' | 'add' | 'import' | 'settings';
 
 function groupCode(code: string): string {
   if (/^\d+$/.test(code) && code.length >= 6 && code.length % 2 === 0) {
@@ -19,70 +18,54 @@ function groupCode(code: string): string {
 }
 
 export default function App() {
-  const [entries, setEntries] = useState<OtpEntry[]>([]);
-  const [codes, setCodes] = useState<Record<string, CodeState>>({});
+  const [status, setStatus] = useState<VaultStatus | null>(null);
+  const [views, setViews] = useState<EntryView[]>([]);
+  const [screen, setScreen] = useState<Screen>('main');
   const [now, setNow] = useState(() => Date.now());
-  const [refreshToken, setRefreshToken] = useState(0);
-  const [screen, setScreen] = useState<'list' | 'add'>('list');
-  const [acked, setAcked] = useState<boolean | null>(null);
-  const [query, setQuery] = useState('');
+  const [toast, setToast] = useState<string | null>(null);
+  const [fatal, setFatal] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
   const [pendingDelete, setPendingDelete] = useState<string | null>(null);
-  const [toast, setToast] = useState<string | null>(null);
+  const [query, setQuery] = useState('');
 
-  const reload = useCallback(async () => {
-    setEntries(await listEntries());
+  const flash = useCallback((message: string) => {
+    setToast(message);
+    window.setTimeout(() => setToast(null), 1600);
+  }, []);
+
+  const refresh = useCallback(async () => {
+    try {
+      const next = await vaultService.status();
+      setStatus(next);
+      if (next.state === 'unlocked') {
+        setViews(await vaultService.listCodes());
+        setFatal(null);
+      } else {
+        setViews([]);
+      }
+    } catch (cause) {
+      setFatal(toErrorMessage(cause));
+    }
   }, []);
 
   useEffect(() => {
-    void reload();
-    void isDevAcknowledged().then(setAcked);
-  }, [reload]);
-
-  useEffect(() => {
-    if (entries.length === 0) {
-      setCodes({});
-      return;
-    }
-    let cancelled = false;
-    void (async () => {
-      const next: Record<string, CodeState> = {};
-      for (const entry of entries) {
-        const result =
-          entry.type === 'steam'
-            ? await steamTotp(entry.secret)
-            : await totp({
-                secret: entry.secret,
-                period: entry.period,
-                digits: entry.digits,
-                algorithm: entry.algorithm,
-              });
-        next[entry.id] = { code: result.code, expiresAt: result.expiresAt, period: result.period };
-      }
-      if (!cancelled) setCodes(next);
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [entries, refreshToken]);
+    void refresh();
+  }, [refresh]);
 
   useEffect(() => {
     const timer = window.setInterval(() => {
       const current = Date.now();
       setNow(current);
-      const expiries = Object.values(codes).map((item) => item.expiresAt);
+      const expiries = views.filter((view) => view.expiresAt > 0).map((view) => view.expiresAt);
       if (expiries.length > 0 && Math.min(...expiries) <= current) {
-        setRefreshToken((token) => token + 1);
+        void vaultService
+          .listCodes()
+          .then(setViews)
+          .catch(() => void refresh());
       }
     }, 250);
     return () => window.clearInterval(timer);
-  }, [codes]);
-
-  useEffect(() => {
-    if (toast === null) return;
-    const timer = window.setTimeout(() => setToast(null), 1600);
-    return () => window.clearTimeout(timer);
-  }, [toast]);
+  }, [views, refresh]);
 
   useEffect(() => {
     if (pendingDelete === null) return;
@@ -90,63 +73,102 @@ export default function App() {
     return () => window.clearTimeout(timer);
   }, [pendingDelete]);
 
-  const copy = async (id: string) => {
-    const state = codes[id];
-    if (!state) return;
+  const copy = async (view: EntryView) => {
     try {
-      await navigator.clipboard.writeText(state.code);
-      setToast('已复制，可粘贴到验证页');
-    } catch {
-      setToast('复制失败，请检查剪贴板权限');
+      await navigator.clipboard.writeText(view.code);
+      if (view.type === 'hotp') {
+        await vaultService.bumpCounter(view.id);
+        await refresh();
+        flash('已复制，计数器已递增');
+        return;
+      }
+      flash('已复制');
+    } catch (cause) {
+      flash(toErrorMessage(cause));
     }
   };
 
-  const remove = async (id: string) => {
-    await deleteEntry(id);
-    setPendingDelete(null);
-    await reload();
-    setToast('已删除');
+  const togglePin = async (id: string) => {
+    await vaultService.togglePin(id);
+    await refresh();
   };
 
-  if (acked === null) return <div className="boot">加载中…</div>;
+  const remove = async (id: string) => {
+    await vaultService.remove(id);
+    setPendingDelete(null);
+    await refresh();
+    flash('已删除');
+  };
 
-  if (!acked) {
+  const lock = async () => {
+    await vaultService.lock();
+    setScreen('main');
+    setEditing(false);
+    await refresh();
+  };
+
+  if (fatal !== null) {
     return (
-      <div className="notice">
-        <div className="notice-title">v0.1 存储尚未加密</div>
-        <p>本版把种子以明文写入 chrome.storage.local，仅适合本机自测。任何能读取浏览器配置目录的程序都能拿到它。</p>
-        <p>验收目标是 TOTP 内核正确性。Argon2id 主密码加密排在 v0.2，接上之后才会写盘加密。</p>
-        <button
-          className="btn primary wide"
-          onClick={async () => {
-            await acknowledgeDevMode();
-            setAcked(true);
-          }}
-        >
-          我已了解，继续使用开发版
+      <div className="lock">
+        <div className="lock-title">出错了</div>
+        <p className="lock-sub">{fatal}</p>
+        <button className="btn" onClick={() => void refresh()}>
+          重试
         </button>
       </div>
+    );
+  }
+
+  if (status === null) return <div className="boot">加载中…</div>;
+
+  if (status.state !== 'unlocked') {
+    return (
+      <>
+        <LockScreen status={status} onDone={refresh} />
+        {toast && <div className="toast">{toast}</div>}
+      </>
     );
   }
 
   if (screen === 'add') {
     return (
       <AddForm
-        onCancel={() => setScreen('list')}
+        onCancel={() => setScreen('main')}
         onAdded={async () => {
-          await reload();
-          setScreen('list');
-          setRefreshToken((token) => token + 1);
-          setToast('已添加');
+          await refresh();
+          setScreen('main');
+          flash('已添加');
         }}
       />
     );
   }
 
-  const filtered = entries.filter((entry) => {
+  if (screen === 'import') {
+    return (
+      <ImportPanel
+        onCancel={() => setScreen('main')}
+        onDone={async (message) => {
+          await refresh();
+          setScreen('main');
+          flash(message);
+        }}
+      />
+    );
+  }
+
+  if (screen === 'settings') {
+    return (
+      <SettingsPanel
+        status={status}
+        onChanged={refresh}
+        onClose={() => setScreen('main')}
+      />
+    );
+  }
+
+  const filtered = views.filter((view) => {
     if (query.trim() === '') return true;
-    const haystack = `${entry.issuer} ${entry.account}`.toLowerCase();
-    return haystack.includes(query.trim().toLowerCase());
+    return `${view.issuer} ${view.account}`.toLowerCase().includes(query.trim().toLowerCase());
   });
 
   return (
@@ -155,21 +177,22 @@ export default function App() {
         <div className="brand">
           <span className="dot" />
           Mercury 2FA
-          <span className="count">{entries.length}</span>
+          <span className="count">{views.length}</span>
         </div>
         <div className="bar-actions">
-          {entries.length > 0 && (
-            <button className="link" onClick={() => setEditing((value) => !value)}>
-              {editing ? '完成' : '编辑'}
-            </button>
-          )}
+          <button className="link" onClick={() => setEditing((value) => !value)}>
+            {editing ? '完成' : '编辑'}
+          </button>
+          <button className="link" onClick={() => setScreen('settings')}>
+            设置
+          </button>
           <button className="icon-btn" title="添加条目" onClick={() => setScreen('add')}>
             ＋
           </button>
         </div>
       </header>
 
-      {entries.length > 3 && (
+      {views.length > 3 && (
         <input
           className="search"
           placeholder="搜索发行方或账号"
@@ -179,60 +202,85 @@ export default function App() {
       )}
 
       <main className="list">
-        {entries.length === 0 && (
+        {views.length === 0 && (
           <div className="empty">
-            <div className="empty-title">还没有条目</div>
-            <p>点右上角 ＋，粘贴 otpauth 链接或手填种子。</p>
+            <div className="empty-title">保险库是空的</div>
+            <p>点右上角 ＋ 手填种子，或到「设置」里导入备份。</p>
           </div>
         )}
 
-        {filtered.map((entry) => {
-          const state = codes[entry.id];
-          const remainingMs = state ? Math.max(0, state.expiresAt - now) : 0;
-          const periodMs = (state?.period ?? 30) * 1000;
-          const progress = state ? Math.max(0, Math.min(1, remainingMs / periodMs)) : 0;
-          const expiring = state !== undefined && remainingMs <= 5000;
+        {filtered.map((view) => {
+          const remainingMs = view.expiresAt > 0 ? Math.max(0, view.expiresAt - now) : 0;
+          const periodMs = view.period * 1000;
+          const progress = view.expiresAt > 0 ? Math.max(0, Math.min(1, remainingMs / periodMs)) : 0;
+          const expiring = view.expiresAt > 0 && remainingMs <= 5000;
 
           return (
             <div
-              key={entry.id}
+              key={view.id}
               className="row"
               role="button"
               tabIndex={0}
-              onClick={() => void copy(entry.id)}
+              onClick={() => void copy(view)}
               onKeyDown={(event) => {
-                if (event.key === 'Enter' || event.key === ' ') void copy(entry.id);
+                if (event.key === 'Enter' || event.key === ' ') void copy(view);
               }}
             >
+              <button
+                className={view.pinned ? 'pin active' : 'pin'}
+                title={view.pinned ? '取消置顶' : '置顶'}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  void togglePin(view.id);
+                }}
+              >
+                ★
+              </button>
               <div className="row-main">
-                <div className="row-title">{entry.issuer || '未命名'}</div>
+                <div className="row-title">{view.issuer || '未命名'}</div>
                 <div className="row-sub">
-                  {entry.account || '—'}
-                  {entry.type !== 'totp' && <span className="tag">{entry.type.toUpperCase()}</span>}
+                  {view.account || '—'}
+                  {view.type !== 'totp' && <span className="tag">{view.type.toUpperCase()}</span>}
+                  {view.type === 'hotp' && <span className="tag">#{view.step}</span>}
                 </div>
               </div>
               <div className={expiring ? 'row-code expiring' : 'row-code'}>
-                {state ? groupCode(state.code) : '··· ···'}
+                {remainingMs > 0 || view.expiresAt === 0 ? groupCode(view.code) : '· · ·  · · ·'}
               </div>
               {editing && (
                 <button
-                  className={pendingDelete === entry.id ? 'remove confirm' : 'remove'}
+                  className={pendingDelete === view.id ? 'remove confirm' : 'remove'}
                   onClick={(event) => {
                     event.stopPropagation();
-                    if (pendingDelete === entry.id) void remove(entry.id);
-                    else setPendingDelete(entry.id);
+                    if (pendingDelete === view.id) void remove(view.id);
+                    else setPendingDelete(view.id);
                   }}
                 >
-                  {pendingDelete === entry.id ? '确认' : '×'}
+                  {pendingDelete === view.id ? '确认' : '×'}
                 </button>
               )}
-              <div className="progress">
-                <span style={{ width: `${progress * 100}%` }} />
-              </div>
+              {view.expiresAt > 0 && (
+                <div className="progress">
+                  <span style={{ width: `${progress * 100}%` }} />
+                </div>
+              )}
             </div>
           );
         })}
       </main>
+
+      <footer className="foot">
+        <button className="link" onClick={() => setScreen('import')}>
+          导入
+        </button>
+        <span className="foot-sep">·</span>
+        <button className="link" onClick={() => void lock()}>
+          立即锁定
+        </button>
+        <span className="foot-note">
+          {status.settings.lockAfterMs / 60000} 分钟自动锁定
+        </span>
+      </footer>
 
       {toast && <div className="toast">{toast}</div>}
     </div>
