@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react';
 import { toErrorMessage } from '../../lib/errors';
 import { parseImportText, type ImportResult } from '../../lib/importers';
+import { pickOtpText, scanActiveTab } from '../../lib/qr-scan';
 import { vaultService } from '../../lib/remote-client';
 
 interface Props {
@@ -13,6 +14,7 @@ export default function ImportPanel({ onDone, onCancel }: Props) {
   const [preview, setPreview] = useState<ImportResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [scanning, setScanning] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const parse = () => {
@@ -31,6 +33,26 @@ export default function ImportPanel({ onDone, onCancel }: Props) {
     setText(content);
     setError(null);
     setPreview(null);
+  };
+
+  /** 截当前页再识别。首次点击会加载约 1.2MB 的 wasm，所以只在用户主动点时才拉 */
+  const scan = async () => {
+    setScanning(true);
+    setError(null);
+    setPreview(null);
+    try {
+      const texts = await scanActiveTab();
+      const otp = pickOtpText(texts);
+      if (otp === null) {
+        throw new Error(texts.length === 0 ? '当前页没有识别到二维码' : '识别到的二维码不是验证码配置');
+      }
+      setText(otp);
+      setPreview(parseImportText(otp));
+    } catch (cause) {
+      setError(toErrorMessage(cause));
+    } finally {
+      setScanning(false);
+    }
   };
 
   const apply = async () => {
@@ -66,6 +88,13 @@ export default function ImportPanel({ onDone, onCancel }: Props) {
     <div className="panel">
       <div className="panel-title">导入</div>
       <p className="hint">支持 Google Authenticator 迁移码、Aegis、2FAS、andOTP、Bitwarden，以及 otpauth 链接。</p>
+
+      <button className="btn ghost" onClick={() => void scan()} disabled={scanning}>
+        {scanning ? '识别中…' : '扫描当前页二维码'}
+      </button>
+      <p className="hint">
+        截图在本地识别，图片不出本机。页面里有多个二维码时，取第一个能读懂的验证码配置。
+      </p>
 
       <label className="field">
         <span>粘贴内容</span>

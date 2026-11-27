@@ -273,6 +273,7 @@ export default function App() {
                   {view.account || '—'}
                   {view.type !== 'totp' && <span className="tag">{view.type.toUpperCase()}</span>}
                   {view.type === 'hotp' && <span className="tag">#{view.step}</span>}
+                  {view.sharedSecret && <span className="tag warn">共用种子</span>}
                 </div>
               </div>
               <div className={expiring ? 'row-code expiring' : 'row-code'}>

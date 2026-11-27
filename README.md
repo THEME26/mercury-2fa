@@ -2,11 +2,11 @@
 
 离线的 2FA 验证码扩展，支持 Chrome 与 Edge。不联网、不注册账号、不上云。
 
-当前版本 **v0.6.0**：DEK 收进 offscreen 进程、剪贴板定时清空、备份健康度角标。安装时不申请任何站点权限。
+当前版本 **v0.7.0**：扫码导入、共用种子提醒、DEK 只在 offscreen 进程内存里。安装时不申请任何站点权限。
 
-| 列表 | 设置 |
+| 列表 | 扫码导入 |
 |---|---|
-| ![列表](docs/screenshot-0.6-list.png) | ![设置](docs/screenshot-0.6-settings.png) |
+| ![列表](docs/list.png) | ![扫码导入](docs/scan.png) |
 
 ## 已实现
 
@@ -18,11 +18,12 @@
 | 解锁 | 主密码解锁，空闲 5/15/30/60 分钟自动锁定，系统空闲或锁屏立刻丢弃 DEK 并关闭 offscreen |
 | 迁移 | 首次创建时自动把 v0.1 的明文库加密并入，原键删除 |
 | 条目 | 添加 / 删除 / 置顶 / STEAM 与 HOTP 变体 / 倒计时进度条 / 剩余 5 秒转红 |
+| 扫码 | 截当前页 → 本地 zxing-wasm 识别二维码 → 回填导入框，支持普通链接与 GA 迁移码 |
 | 导入 | Google Authenticator 迁移码、Aegis、2FAS、andOTP、Bitwarden、otpauth 链接串 |
 | 备份 | 加密备份导出与恢复、更换主密码（只重封装 DEK，库体不重写）、恢复时核对条数 |
 | 自动填充 | 点图标后用 `activeTab` 临时注入，识别验证码框并写入；支持六格拆分与 shadow DOM |
 | 剪贴板 | 复制后按设置（30 秒 / 1 分钟 / 2 分钟 / 不清空）由 offscreen 覆写 |
-| 提醒 | 图标角标：超过 30 天没导出备份时出现 `!`；`Alt+Shift+M` 直接打开弹窗 |
+| 提醒 | 图标角标：超过 30 天没导出备份时出现 `!`；同一组种子挂在多个账号上时列表标「共用种子」 |
 | 自检 | 内置四项检查：往返解密、错误密码拒绝、密文篡改检测、派生耗时 |
 
 ## 三个上下文，各管一件事
@@ -34,9 +35,19 @@ popup（界面）  --命令-->  service worker（路由）  --命令-->  offscre
                         ↑ 只管创建/关闭文档、闹钟、角标          持有 DEK，只在内存变量里
 ```
 
-- **popup 里没有解密代码路径。** 打包产物中 popup 分块对 `argon2id`、`wrappedDek`、`AES-GCM`、`hash-wasm` 的匹配数都是 0，这些只出现在 offscreen 分块。这是可以对产物 `grep` 验证的事实，不是设计承诺。
+- **popup 里没有解密代码路径。** 打包产物中 popup 分块对 `argon2id`、`wrappedDek`、`AES-GCM` 的匹配数都是 0，这些只出现在 offscreen 分块。这是可以对产物 `grep` 验证的事实，不是设计承诺。
 - **命令走白名单。** 每条消息按 `op` 重建对象后才转发，多余字段丢弃；关掉 offscreen 文档就等于把 DEK 扔掉，下次打开必然要求重新输密码。
 - **返回值过闸门。** 出站前扫一遍字段名，出现 `secret` 或 `secrets` 直接丢包。添加条目只回 `{ id }`，因为条目记录本身带种子。
+
+## 二维码导入
+
+点「扫描当前页二维码」，扩展截当前标签页，在本地用 zxing-wasm 解码，认出 `otpauth://` 或 `otpauth-migration://` 就回填到导入框，走同一套解析与预览。
+
+三件事值得说明：
+
+- **wasm 从扩展包里加载。** zxing-wasm 默认的 `locateFile` 会去 jsdelivr 拉 `.wasm`，那是远程代码，MV3 禁止，也与零网络冲突。这里改成 `new URL(<打包后的 asset>, location.href)`，wasm 作为 `assets/zxing_reader-*.wasm`（946 KB）随扩展分发。产物里仍能找到 jsdelivr 那行字符串，它在 zxing 自己的兜底分支里，我们的 `prepareZXingModule` 每次都传了 `locateFile`，那条分支不会执行 —— 这一点可以对照 `lib/qr-scan.ts` 与产物里的 `locateFile:Be` 自行核对。
+- **按需加载。** 解码器是动态 `import()`，主包体不变，点按钮时才拉那 38 KB 的胶水代码与 wasm。
+- **截图不出本机。** `captureVisibleTab` 的 data URL 在内存里转成字节直接喂给解码器，没有任何上传路径。
 
 ## 自动填充的边界
 
@@ -79,32 +90,42 @@ popup（界面）  --命令-->  service worker（路由）  --命令-->  offscre
 
 **图标倒计时没有做。** 30 秒周期配 30 秒粒度的闹钟，角标只会永远显示同一个数字。这个想法在 MV3 下没有实现价值，换成备份健康度：超过 30 天没导出，角标变成琥珀色 `!`。
 
+## 共用种子提醒
+
+同一个种子挂在两个账号上，任意一处泄露等于两个账号同时失守，而多数人是在「给备用账号再扫一次码」时无意造成的。取码时按归一化后的种子分组，同组超过一条，两条都标「共用种子」。种子本身不进返回值，界面只知道一个布尔值。
+
 ## 验证结果
 
 | 项目 | 结果 |
 |---|---|
-| 单元测试 | **130 项**全通过 |
+| 单元测试 | **139 项**全通过 |
 | RFC 4226 十组 HOTP 向量 | 全部匹配 |
 | RFC 6238 六时点 × SHA1/256/512 | 18 组全部匹配 |
 | 命令白名单 | 未知 op / target 不符 / 缺字段 / 超长文本 / 多余字段注入，逐项拒绝 |
 | 出站闸门 | 构造带 `secret` 的返回值被拦下；正常条目视图与导出文本放行 |
 | 进程边界 | 建库后 `storage.session` 里没有任何 dek 键；换一个宿主即回到锁定态；锁定后取码报 `locked` |
 | 命令层端到端 | 建库 → 添加 → 取码 → 导出 → 另一实例恢复 → 改密码后旧密码失效，全链路走真实服务 |
-| 浏览器端到端 | 加载真实构建产物：建库、加三条、取码 `210 550 / 557 782 / 503 740`，点「填入 GitHub」后 shadow DOM 输入框得到同一串码 |
+| 二维码 | 生成的样本图解码出原串，再交给导入解析得到 1 条 GitHub；无码图片返回空数组 |
+| 共用种子 | 同种子两条互标、写法差异仍能认出、不同种子不标、返回值不含种子 |
+| 浏览器端到端 | 加载真实构建产物：建库、加三条、取码，点「填入 GitHub」后 shadow DOM 输入框得到同一串码 |
+| 浏览器扫码 | 真实产物 + 打包的 wasm：点「扫描当前页二维码」，识别出 otpauth 串、回填输入框、预览「GitHub alice@example.com TOTP·6位」 |
 | 重载即锁 | 同一个配置目录重开页面，宿主重建，界面回到「保险库已锁定」 |
-| 分块隔离 | popup 分块中 `argon2id` / `wrappedDek` / `AES-GCM` / `hash-wasm` 匹配数均为 0 |
+| 分块隔离 | popup 分块中 `argon2id` / `wrappedDek` / `AES-GCM` 匹配数均为 0 |
 | 类型检查 | `tsc --noEmit` 0 错误 |
-| 产物 | 315 KB，权限 `storage`、`idle`、`clipboardWrite`、`activeTab`、`scripting`、`alarms`、`offscreen`，无 `host_permissions` |
+| 产物 | 1.30 MB（含 946 KB wasm），权限 `storage`、`idle`、`clipboardWrite`、`activeTab`、`scripting`、`alarms`、`offscreen`，无 `host_permissions` |
 
-`clipboardWrite` 的实际清空效果必须在装了扩展的真浏览器里验证 —— 预览页没有扩展权限，测出来的只能是拒绝。这条没验过。
+没验过的两条，必须在真机确认：
+
+- `clipboardWrite` 的实际清空效果 —— 预览页没有扩展权限，测出来只能是拒绝
+- 真实站点上的填充命中率 —— 页面结构与动态渲染时机复现不出来
 
 ## 未实现（明确列出）
 
 | 项 | 卡在哪 |
 |---|---|
 | 常驻挂标（零点击） | 需要可选站点权限 + 商店逐条写理由，等 activeTab 路径跑够数据再说 |
-| 截图二维码导入 | 需要 `captureVisibleTab` + zxing-wasm，另加约 1.5MB |
-| 图标、i18n、双商店上架 | 收尾工程，功能稳定后再做 |
+| 全量 i18n | 界面目前只有中文，`_locales` 只覆盖名称与描述 |
+| 时钟偏差提示 | 扩展看不到登录页的失败原因，只能靠用户自己发现，做不出可靠判定 |
 
 ## 安全模型
 
@@ -118,6 +139,7 @@ popup（界面）  --命令-->  service worker（路由）  --命令-->  offscre
 - 主密码更换：只重封装 DEK，旧密码立即失效
 - 网页读种子：填充只传一个算好的验证码，页面侧拿不到种子
 - 消息层面的越界：命令白名单 + 字段重建 + 出站扫 `secret`
+- 扫码内容：截图在本地解码，不经过网络
 
 不防：
 
@@ -135,6 +157,7 @@ entrypoints/background   service worker：创建/关闭 offscreen、转发命令
 lib/protocol.ts          命令白名单、字段重建、出站 secret 闸门
 lib/offscreen-router.ts  命令分发（纯函数，可脱离浏览器测试）
 lib/remote-client.ts     popup 侧客户端，签名与 VaultService 一致
+lib/qr-scan.ts           截图 + zxing-wasm 解码，wasm 走本地资产
 lib/clipboard.ts         清空调度与文案
 lib/fill/autofill.ts     注入到页面的自包含填充函数
 lib/fill/inject.ts       activeTab 注入通道与结果翻译
@@ -145,7 +168,7 @@ lib/crypto-host.ts       加密边界；唯一实现把 DEK 放在内存变量�
 lib/browser-store.ts     storage.local / storage.session 适配
 lib/importers.ts         GA protobuf、各家 JSON、otpauth 串
 lib/totp.ts …            取码内核
-tests/                   130 项
+tests/                   139 项，含二维码样本与 jsdom 填充用例
 ```
 
 ## 数据格式
@@ -169,18 +192,19 @@ tests/                   130 项
 
 ```bash
 npm install
-npm test              # 130 项，含 RFC 向量、命令白名单与 jsdom 填充测试
+npm test              # 139 项
 npm run compile       # tsc --noEmit
 npm run build         # .output/chrome-mv3
 npm run build:edge    # .output/edge-mv3
+npm run zip           # 上架用压缩包
 ```
 
 ## 加载与绑定 GitHub
 
 1. `chrome://extensions` → 开发者模式 → 加载已解压 → `.output\chrome-mv3`
 2. 首次打开设主密码（建议中档），记录到密码管理器
-3. GitHub → Settings → Password and authentication → Enable 2FA → Authenticator app → **enter this text code**
-4. 扩展点 ＋，发行方 `GitHub`，账号填用户名，种子粘那串 32 位 setup key（空格会自动清掉）
+3. GitHub → Settings → Password and authentication → Enable 2FA → Authenticator app
+4. GitHub 的二维码页面点扩展图标 → 导入 → 「扫描当前页二维码」，识别后点「导入 1 条」。也可以手点二维码下方的 **enter this text code**，把 32 位 setup key 粘进 ＋ 的手填表单
 5. 在 GitHub 的验证页点扩展图标，底部出现「填入 GitHub」，点一下自动写入
 6. **立即到设置里导出加密备份**，并把 GitHub 的 recovery codes 存好
 
@@ -188,6 +212,5 @@ npm run build:edge    # .output/edge-mv3
 
 1. 真机回归：GitHub、Google、AWS、Cloudflare 四个登录页填通，十个只有密码框的页面零误填
 2. 真机确认剪贴板 30 秒后确实被清空，以及锁定、重启、休眠三种情况下密钥不残留
-3. 截图二维码导入（`captureVisibleTab` + zxing-wasm，动态 `import()` 分包）
+3. 双商店提交（材料见 `docs/STORE.md`，隐私政策见 `docs/PRIVACY.md`）
 4. 可选开启常驻内容脚本，换取页面加载即挂标的零点击体验
-5. 双商店上架与 `_locales`

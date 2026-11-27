@@ -189,10 +189,14 @@ export class VaultService {
     const now = this.now();
     const views: EntryView[] = [];
 
+    /** 同一个种子挂在多个账号上是配置错误，标出来让用户自己决定要不要拆 */
+    const usage = new Map<string, number>();
+    for (const entry of entries) usage.set(entry.secret, (usage.get(entry.secret) ?? 0) + 1);
+
     for (const entry of sortEntries(entries)) {
       if (entry.type === 'steam') {
         const result = await steamTotp(entry.secret, now);
-        views.push(this.toView(entry, result.code, result.expiresAt, result.step));
+        views.push(this.toView(entry, result.code, result.expiresAt, result.step, usage));
         continue;
       }
       if (entry.type === 'hotp') {
@@ -203,7 +207,7 @@ export class VaultService {
           digits: entry.digits,
           algorithm: entry.algorithm,
         });
-        views.push(this.toView(entry, code, 0, counter));
+        views.push(this.toView(entry, code, 0, counter, usage));
         continue;
       }
       const result = await totp({
@@ -213,12 +217,18 @@ export class VaultService {
         digits: entry.digits,
         algorithm: entry.algorithm,
       });
-      views.push(this.toView(entry, result.code, result.expiresAt, result.step));
+      views.push(this.toView(entry, result.code, result.expiresAt, result.step, usage));
     }
     return views;
   }
 
-  private toView(entry: EntryRecord, code: string, expiresAt: number, step: number): EntryView {
+  private toView(
+    entry: EntryRecord,
+    code: string,
+    expiresAt: number,
+    step: number,
+    usage: Map<string, number>,
+  ): EntryView {
     return {
       id: entry.id,
       type: entry.type,
@@ -227,6 +237,7 @@ export class VaultService {
       digits: entry.digits,
       period: entry.period,
       pinned: Boolean(entry.pinned),
+      sharedSecret: (usage.get(entry.secret) ?? 1) > 1,
       code,
       expiresAt,
       step,

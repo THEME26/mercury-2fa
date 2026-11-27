@@ -650,3 +650,9 @@ button {
   color: var(--muted);
   cursor: default;
 }
+
+.tag.warn {
+  color: var(--accent);
+  border-color: var(--accent);
+  opacity: 0.85;
+}

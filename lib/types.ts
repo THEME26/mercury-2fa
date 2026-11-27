@@ -39,6 +39,8 @@ export interface EntryView {
   digits: number;
   period: number;
   pinned: boolean;
+  /** 同一个种子被多个条目使用：任意一处泄露，两个账号同时失守 */
+  sharedSecret?: boolean;
   code: string;
   /** 失效的绝对时间，毫秒；HOTP 为 0 表示固定不变 */
   expiresAt: number;
