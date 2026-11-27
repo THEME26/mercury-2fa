@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import { toErrorMessage } from '../../lib/errors';
 import { parseImportText, type ImportResult } from '../../lib/importers';
-import { vaultService } from '../../lib/service-instance';
+import { vaultService } from '../../lib/remote-client';
 
 interface Props {
   onDone: (message: string) => Promise<void>;

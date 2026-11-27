@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
 import { toErrorMessage } from '../../lib/errors';
-import { vaultService } from '../../lib/service-instance';
+import { vaultService } from '../../lib/remote-client';
 import type { VaultStatus } from '../../lib/types';
 import type { SelfTestReport } from '../../lib/vault-service';
 
@@ -16,6 +16,20 @@ const LOCK_OPTIONS = [
   { value: 30 * 60 * 1000, label: '30 分钟' },
   { value: 60 * 60 * 1000, label: '60 分钟' },
 ];
+
+const CLIP_OPTIONS = [
+  { value: 0, label: '不清空' },
+  { value: 30_000, label: '30 秒清空' },
+  { value: 60_000, label: '1 分钟清空' },
+  { value: 120_000, label: '2 分钟清空' },
+];
+
+function formatTime(at: number | undefined): string {
+  if (typeof at !== 'number') return '从未导出';
+  const days = Math.floor((Date.now() - at) / 86_400_000);
+  const stamp = new Date(at).toLocaleDateString('zh-CN');
+  return days <= 0 ? `${stamp}（今天）` : `${stamp}（${days} 天前）`;
+}
 
 function download(fileName: string, content: string): void {
   const blob = new Blob([content], { type: 'application/json' });
@@ -128,6 +142,30 @@ export default function SettingsPanel({ status, onChanged, onClose }: Props) {
       </div>
 
       <div className="section">
+        <div className="section-title">剪贴板</div>
+        <select
+          className="input"
+          value={status.settings.clipboardClearMs}
+          onChange={(event) =>
+            void run('clip', async () => {
+              await vaultService.setSettings({ clipboardClearMs: Number(event.target.value) });
+              return '已更新剪贴板清空时间';
+            })
+          }
+        >
+          {CLIP_OPTIONS.map((option) => (
+            <option key={option.value} value={option.value}>
+              复制后{option.label}
+            </option>
+          ))}
+        </select>
+        <p className="hint">
+          到点由后台覆写剪贴板。这期间复制了别的内容也会被一并清掉 —— 扩展不申请读取剪贴板的权限，
+          分辨不出当前内容是不是自己写的。
+        </p>
+      </div>
+
+      <div className="section">
         <div className="section-title">更换主密码</div>
         <input
           className="input"
@@ -165,6 +203,13 @@ export default function SettingsPanel({ status, onChanged, onClose }: Props) {
           {busy === 'export' ? '导出中…' : '导出备份文件'}
         </button>
         <p className="hint">导出内容是密文，可以安全地放到 U 盘或网盘，恢复时需要主密码。</p>
+        <p className="hint">
+          上次导出：{formatTime(status.settings.lastBackupAt)}
+          {status.entryCount > 0 &&
+            (status.settings.lastBackupAt === undefined ||
+              Date.now() - status.settings.lastBackupAt > 30 * 86_400_000) &&
+            ' · 超过 30 天会在图标上挂提醒'}
+        </p>
 
         <div className="inline">
           <button className="btn ghost" onClick={() => fileRef.current?.click()}>

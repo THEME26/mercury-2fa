@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { toErrorMessage } from '../../lib/errors';
 import { isOtpAuthUri, parseOtpAuthUri } from '../../lib/otpauth';
-import { vaultService } from '../../lib/service-instance';
+import { vaultService } from '../../lib/remote-client';
 import type { HmacAlgorithm, OtpType } from '../../lib/types';
 
 interface FormState {

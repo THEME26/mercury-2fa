@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { SessionCryptoHost } from '../lib/crypto-host';
+import { MemoryCryptoHost } from '../lib/crypto-host';
 import { BackupError, VaultError } from '../lib/errors';
 import { MemoryStore } from '../lib/storage';
 import { VaultService } from '../lib/vault-service';
@@ -11,7 +11,7 @@ const AWS_URI = 'otpauth://totp/AWS:ops%40acme.dev?secret=KRSXG5CTMVRXEZLU&issue
 function setup() {
   const local = new MemoryStore();
   const session = new MemoryStore();
-  const service = new VaultService(local, session, new SessionCryptoHost(session), () => 1_700_000_000_000);
+  const service = new VaultService(local, session, new MemoryCryptoHost(), () => 1_700_000_000_000);
   return { local, session, service };
 }
 

@@ -33,7 +33,7 @@ const ACTIVITY_KEY = 'session.lastActivity';
 
 export const DEFAULT_SETTINGS: Settings = {
   lockAfterMs: 15 * 60 * 1000,
-  clipboardClearMs: 0,
+  clipboardClearMs: 30_000,
   kdfTier: 'medium',
 };
 
@@ -317,6 +317,7 @@ export class VaultService {
   async exportBackup(): Promise<string> {
     const vault = await this.getVault();
     if (!vault) throw new VaultError('empty', '还没有创建保险库');
+    await this.setSettings({ lastBackupAt: this.now() });
     await this.touch();
     return JSON.stringify(makeBackup(vault), null, 2);
   }

@@ -4,6 +4,13 @@ export type HmacAlgorithm = 'SHA-1' | 'SHA-256' | 'SHA-512';
 
 export type KdfTier = 'low' | 'medium' | 'high';
 
+/** 派生强度预设，m 的单位是 KiB，与 argon2 参考实现的 m_cost 一致 */
+export const KDF_TIERS: Record<KdfTier, { m: number; t: number; p: number; label: string }> = {
+  low: { m: 19 * 1024, t: 2, p: 1, label: '低（约 100ms，老机器）' },
+  medium: { m: 64 * 1024, t: 3, p: 1, label: '中（约 400ms，推荐）' },
+  high: { m: 256 * 1024, t: 4, p: 1, label: '高（约 1.5s，强口令）' },
+};
+
 export interface OtpEntry {
   id: string;
   type: OtpType;
@@ -44,6 +51,8 @@ export interface Settings {
   /** 复制后多少毫秒清空剪贴板，0 表示不清 */
   clipboardClearMs: number;
   kdfTier: KdfTier;
+  /** 上次导出加密备份的绝对时间，用于算备份健康度 */
+  lastBackupAt?: number;
 }
 
 export interface VaultStatus {

@@ -1,8 +1,7 @@
 import { useState } from 'react';
 import { toErrorMessage } from '../../lib/errors';
-import { vaultService } from '../../lib/service-instance';
-import type { KdfTier, VaultStatus } from '../../lib/types';
-import { KDF_TIERS } from '../../lib/crypto';
+import { vaultService } from '../../lib/remote-client';
+import { KDF_TIERS, type KdfTier, type VaultStatus } from '../../lib/types';
 
 interface Props {
   status: VaultStatus;
@@ -59,7 +58,7 @@ export default function LockScreen({ status, onDone }: Props) {
           type="password"
           autoFocus
           value={password}
-          placeholder="至少 8 位"
+          placeholder={creating ? '至少 8 位' : '输入主密码'}
           onChange={(event) => setPassword(event.target.value)}
           onKeyDown={(event) => {
             if (event.key === 'Enter' && !creating) void submit();

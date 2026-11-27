@@ -1,10 +1,8 @@
-import { SessionCryptoHost } from './crypto-host';
+import { MemoryCryptoHost } from './crypto-host';
 import { localStore, sessionStore } from './browser-store';
 import { VaultService } from './vault-service';
 
-/** popup 与 service worker 各自持有一份，共享同一套 storage */
-export const vaultService = new VaultService(
-  localStore,
-  sessionStore,
-  new SessionCryptoHost(sessionStore),
-);
+/** 只给 offscreen 文档用：DEK 落在 MemoryCryptoHost 的内存变量里 */
+export function createVaultService(): VaultService {
+  return new VaultService(localStore, sessionStore, new MemoryCryptoHost());
+}

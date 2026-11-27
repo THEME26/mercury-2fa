@@ -2,24 +2,19 @@ import {
   aesDecrypt,
   aesEncrypt,
   createVault,
-  fromBase64,
   isWrongPassword,
   openVault,
   rewrapVault,
-  toBase64,
   type Sealed,
   type VaultV2,
 } from './crypto';
 import { VaultError } from './errors';
-import type { KeyValueStore } from './storage';
 import type { KdfTier } from './types';
-
-const DEK_KEY = 'session.dek';
 
 /**
  * 加密能力的抽象边界。
- * 现在由 SessionCryptoHost 在 service worker 内实现，DEK 落在 storage.session（内存态）。
- * 换成 offscreen document 时只要换掉这个接口的实现，上层逻辑不动。
+ * 实现必须把 DEK 留在进程内存里，不允许写入 storage —— 写进去就等于把种子交给
+ * 任何能读 storage 的扩展页面。当前唯一实现是 MemoryCryptoHost，运行在 offscreen 文档内。
  */
 export interface CryptoHost {
   isUnlocked(): Promise<boolean>;
@@ -31,29 +26,32 @@ export interface CryptoHost {
   lock(): Promise<void>;
 }
 
-export class SessionCryptoHost implements CryptoHost {
-  constructor(private readonly session: KeyValueStore) {}
+/**
+ * DEK 只存在这个模块作用域的变量里。offscreen 文档被销毁、浏览器退出、
+ * 或显式调用 lock() 都会让它消失，且无法从外部读取。
+ */
+export class MemoryCryptoHost implements CryptoHost {
+  private dek: Uint8Array | null = null;
 
   async isUnlocked(): Promise<boolean> {
-    return (await this.session.get<string>(DEK_KEY)) !== undefined;
+    return this.dek !== null;
   }
 
-  private async dek(): Promise<Uint8Array> {
-    const raw = await this.session.get<string>(DEK_KEY);
-    if (raw === undefined) throw new VaultError('locked', '保险库已锁定');
-    return fromBase64(raw);
+  private requireDek(): Uint8Array {
+    if (this.dek === null) throw new VaultError('locked', '保险库已锁定');
+    return this.dek;
   }
 
   async create(password: string, entries: unknown, tier: KdfTier): Promise<VaultV2> {
     const { vault, dek } = await createVault(password, entries, tier);
-    await this.session.set(DEK_KEY, toBase64(dek));
+    this.dek = dek;
     return vault;
   }
 
   async unlock(password: string, vault: VaultV2): Promise<unknown> {
     try {
       const opened = await openVault(vault, password);
-      await this.session.set(DEK_KEY, toBase64(opened.dek));
+      this.dek = opened.dek;
       return opened.entries;
     } catch (error) {
       if (isWrongPassword(error)) throw new VaultError('wrong-password', '主密码不正确');
@@ -62,18 +60,19 @@ export class SessionCryptoHost implements CryptoHost {
   }
 
   async decryptPayload(payload: Sealed): Promise<unknown> {
-    return JSON.parse(new TextDecoder().decode(await aesDecrypt(await this.dek(), payload)));
+    return JSON.parse(new TextDecoder().decode(await aesDecrypt(this.requireDek(), payload)));
   }
 
   async sealEntries(entries: unknown): Promise<Sealed> {
-    return aesEncrypt(await this.dek(), new TextEncoder().encode(JSON.stringify(entries)));
+    return aesEncrypt(this.requireDek(), new TextEncoder().encode(JSON.stringify(entries)));
   }
 
   async rewrap(vault: VaultV2, newPassword: string, tier?: KdfTier): Promise<VaultV2> {
-    return rewrapVault(vault, await this.dek(), newPassword, tier);
+    return rewrapVault(vault, this.requireDek(), newPassword, tier);
   }
 
   async lock(): Promise<void> {
-    await this.session.remove(DEK_KEY);
+    if (this.dek !== null) this.dek.fill(0);
+    this.dek = null;
   }
 }

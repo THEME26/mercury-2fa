@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { SessionCryptoHost } from '../lib/crypto-host';
+import { MemoryCryptoHost } from '../lib/crypto-host';
 import { MemoryStore } from '../lib/storage';
 import { VaultService } from '../lib/vault-service';
 
@@ -8,7 +8,7 @@ const PASSWORD = 'password-123';
 function setup(startAt = 1_700_000_000_000) {
   const local = new MemoryStore();
   const session = new MemoryStore();
-  const host = new SessionCryptoHost(session);
+  const host = new MemoryCryptoHost();
   let clock = startAt;
   const service = new VaultService(local, session, host, () => clock);
   return {

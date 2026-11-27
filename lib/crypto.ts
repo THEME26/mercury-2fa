@@ -1,5 +1,9 @@
 import { argon2id } from 'hash-wasm';
 import { BackupError, VaultError } from './errors';
+import { KDF_TIERS, type KdfTier } from './types';
+
+export { KDF_TIERS };
+export type { KdfTier };
 
 /** Argon2id 参数，m 的单位是 KiB，与 argon2 参考实现的 m_cost 一致 */
 export interface Argon2Params {
@@ -9,14 +13,6 @@ export interface Argon2Params {
   p: number;
   salt: string;
 }
-
-export type KdfTier = 'low' | 'medium' | 'high';
-
-export const KDF_TIERS: Record<KdfTier, { m: number; t: number; p: number; label: string }> = {
-  low: { m: 19 * 1024, t: 2, p: 1, label: '低（约 100ms，老机器）' },
-  medium: { m: 64 * 1024, t: 3, p: 1, label: '中（约 400ms，推荐）' },
-  high: { m: 256 * 1024, t: 4, p: 1, label: '高（约 1.5s，强口令）' },
-};
 
 export interface Sealed {
   iv: string;

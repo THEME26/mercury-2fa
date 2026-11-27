@@ -4,7 +4,31 @@ export type VaultErrorCode =
   | 'exists'
   | 'wrong-password'
   | 'invalid'
-  | 'not-found';
+  | 'not-found'
+  /** 后台超过 30 秒没有响应 */
+  | 'timeout'
+  /** 后台没有注册处理函数 */
+  | 'no-handler'
+  /** 返回值不合协议，被出站闸门拦下 */
+  | 'protocol'
+  | 'unknown';
+
+const KNOWN_CODES: readonly string[] = [
+  'locked',
+  'empty',
+  'exists',
+  'wrong-password',
+  'invalid',
+  'not-found',
+  'timeout',
+  'no-handler',
+  'protocol',
+  'unknown',
+];
+
+export function asVaultErrorCode(value: unknown): VaultErrorCode {
+  return typeof value === 'string' && KNOWN_CODES.includes(value) ? (value as VaultErrorCode) : 'unknown';
+}
 
 export class VaultError extends Error {
   readonly code: VaultErrorCode;

@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
+import { describeClearDelay, scheduleClipboardClear } from '../../lib/clipboard';
 import { toErrorMessage } from '../../lib/errors';
 import { fillActivePage, getActivePage, type ActivePage } from '../../lib/fill/inject';
 import { bestMatch } from '../../lib/fill/site-match';
-import { vaultService } from '../../lib/service-instance';
+import { vaultService } from '../../lib/remote-client';
 import type { EntryView, VaultStatus } from '../../lib/types';
 import AddForm from './AddForm';
 import ImportPanel from './ImportPanel';
@@ -81,13 +82,16 @@ export default function App() {
   const copy = async (view: EntryView) => {
     try {
       await navigator.clipboard.writeText(view.code);
+      const clearMs = status?.settings.clipboardClearMs ?? 0;
+      await scheduleClipboardClear(clearMs);
+      const suffix = clearMs > 0 ? `，${describeClearDelay(clearMs)}` : '';
       if (view.type === 'hotp') {
         await vaultService.bumpCounter(view.id);
         await refresh();
-        flash('已复制，计数器已递增');
+        flash(`已复制，计数器已递增${suffix}`);
         return;
       }
-      flash('已复制');
+      flash(`已复制${suffix}`);
     } catch (cause) {
       flash(toErrorMessage(cause));
     }
