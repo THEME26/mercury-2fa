@@ -2,6 +2,8 @@
 
 离线的 2FA 验证码扩展，支持 Chrome 与 Edge。不联网、不注册账号、不上云。
 
+[仓库](https://github.com/THEME26/mercury-2fa) · [隐私政策](https://theme26.github.io/mercury-2fa/privacy.html) · [上架材料](docs/STORE.md)
+
 当前版本 **v0.7.2**：扫码导入、共用种子提醒、DEK 只在 offscreen 进程内存里，存储读写经 service worker 代理，已备齐商店图标与 1280×800 截图。安装时不申请任何站点权限。
 
 | 列表 | 导入 |

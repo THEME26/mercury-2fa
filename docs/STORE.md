@@ -78,7 +78,7 @@
 | 是否用于广告或信用评估 | 否 |
 | 是否使用远程代码 | 否 |
 
-隐私政策页面：`docs/privacy.html`，托管后把公开地址填入 Partner Center 的 Privacy policy URL。
+隐私政策页面：https://theme26.github.io/mercury-2fa/privacy.html （源文件 `docs/privacy.html`，经仓库 `docs/` 目录由 GitHub Pages 发布）。表单填这个地址。
 
 ## 六、素材
 
@@ -115,7 +115,7 @@
 2. 「Edge 扩展」仪表板 → 新建扩展 → 上传 `.output/mercury-2fa-0.7.2-edge.zip`。系统解析 manifest，无红色报错即可继续。
 3. 属性（Properties）
    - 类别：Productivity
-   - 隐私政策 URL：已托管的 `privacy.html` 地址
+   - 隐私政策 URL：https://theme26.github.io/mercury-2fa/privacy.html
    - 是否收集个人信息：否
    - 成人内容：否
    - 网站、支持联系人：可留空，建议填 GitHub 仓库地址
@@ -161,14 +161,18 @@ English version:
 
 ## 九、隐私政策托管
 
-`docs/privacy.html` 是自包含页面，无外部字体与脚本，可直接静态托管。GitHub Pages 路径最短：
+已完成。
 
-1. 建公开仓库，推入本仓库内容（`docs/` 目录随之上传）。
-2. 仓库 Settings → Pages → Source 选 `Deploy from a branch`，分支 `main`，目录 `/docs`。
-3. 等待约 1 分钟，地址形如 `https://<用户名>.github.io/<仓库名>/privacy.html`。
-4. 无痕窗口打开该地址确认可匿名访问，再填入 Partner Center。
+| 项目 | 值 |
+|---|---|
+| 仓库 | https://github.com/THEME26/mercury-2fa |
+| 页面 | https://theme26.github.io/mercury-2fa/privacy.html |
+| 发布方式 | GitHub Pages，源分支 `main`，目录 `/docs`，`build_type: legacy` |
+| 验证 | 未登录请求返回 200，`content-type: text/html`，正文含中英文两段 |
 
-备案与内容合规不在本流程内。若使用自有域名，直接上传同一份 HTML 即可。
+页面随 `docs/` 目录一起发布，改动 `docs/privacy.html` 后提交并推送 `main`，Pages 约 1 分钟自动重建，无需再次配置。自有域名可在仓库 Settings → Pages 绑定 Custom domain，同时打开 Enforce HTTPS。
+
+备案与内容合规不在本流程内。
 
 ## 十、提交前检查
 
@@ -179,7 +183,7 @@ English version:
 - [x] 图标 16 / 32 / 48 / 128 已入包
 - [x] 截图 4 张 1280 × 800，Logo 300 × 300
 - [x] ZIP 根目录为 `manifest.json`
-- [ ] 隐私政策已托管，匿名可访问
+- [x] 隐私政策已托管，匿名可访问
 - [ ] Partner Center 账号已注册
 - [ ] 审核说明已粘贴
 
