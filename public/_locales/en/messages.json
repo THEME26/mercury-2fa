@@ -1,0 +1,8 @@
+{
+  "extName": {
+    "message": "Mercury 2FA"
+  },
+  "extDescription": {
+    "message": "Offline TOTP codes for Chrome and Edge. No network requests, no account, no site permissions."
+  }
+}

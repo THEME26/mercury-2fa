@@ -1,0 +1,8 @@
+{
+  "extName": {
+    "message": "Mercury 2FA"
+  },
+  "extDescription": {
+    "message": "Codes TOTP hors ligne. Aucune requête réseau, aucun compte, aucune autorisation de site."
+  }
+}

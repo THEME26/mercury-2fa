@@ -1,3 +1,4 @@
+import { UserError } from './errors';
 import { browser } from 'wxt/browser';
 import wasmUrl from 'zxing-wasm/reader/zxing_reader.wasm?url';
 
@@ -45,7 +46,7 @@ export async function decodeQrFromBytes(bytes: Uint8Array, overrides?: ScanOverr
 
 export function dataUrlToBytes(dataUrl: string): Uint8Array {
   const comma = dataUrl.indexOf(',');
-  if (comma < 0) throw new Error('截图数据格式异常');
+  if (comma < 0) throw new UserError('error.qr.format', undefined, '截图数据格式异常');
   const binary = atob(dataUrl.slice(comma + 1));
   const bytes = new Uint8Array(binary.length);
   for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
@@ -56,13 +57,13 @@ export function dataUrlToBytes(dataUrl: string): Uint8Array {
 export async function scanActiveTab(overrides?: ScanOverrides): Promise<string[]> {
   const tabs = await browser.tabs.query({ active: true, currentWindow: true });
   const tab = tabs[0];
-  if (!tab || typeof tab.id !== 'number') throw new Error('读不到当前标签页');
+  if (!tab || typeof tab.id !== 'number') throw new UserError('error.qr.noTab', undefined, '读不到当前标签页');
   if (typeof tab.url === 'string' && !/^https?:\/\//i.test(tab.url)) {
-    throw new Error('浏览器内部页面不给截图，请在普通网页上使用');
+    throw new UserError('error.qr.internal', undefined, '浏览器内部页面不给截图，请在普通网页上使用');
   }
 
   const dataUrl = await browser.tabs.captureVisibleTab(tab.windowId, { format: 'png' });
-  if (typeof dataUrl !== 'string') throw new Error('截图失败');
+  if (typeof dataUrl !== 'string') throw new UserError('error.qr.capture', undefined, '截图失败');
   return decodeQrFromBytes(dataUrlToBytes(dataUrl), overrides);
 }
 

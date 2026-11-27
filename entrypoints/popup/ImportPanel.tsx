@@ -1,5 +1,7 @@
 import { useRef, useState } from 'react';
-import { toErrorMessage } from '../../lib/errors';
+import { UserError } from '../../lib/errors';
+import { describeError } from '../../lib/i18n/describe-error';
+import { useI18n } from '../../lib/i18n/react';
 import { parseImportText, type ImportResult } from '../../lib/importers';
 import { pickOtpText, scanActiveTab } from '../../lib/qr-scan';
 import { vaultService } from '../../lib/remote-client';
@@ -10,6 +12,7 @@ interface Props {
 }
 
 export default function ImportPanel({ onDone, onCancel }: Props) {
+  const { t } = useI18n();
   const [text, setText] = useState('');
   const [preview, setPreview] = useState<ImportResult | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -23,7 +26,7 @@ export default function ImportPanel({ onDone, onCancel }: Props) {
     try {
       setPreview(parseImportText(text));
     } catch (cause) {
-      setError(toErrorMessage(cause));
+      setError(describeError(cause));
     }
   };
 
@@ -44,12 +47,12 @@ export default function ImportPanel({ onDone, onCancel }: Props) {
       const texts = await scanActiveTab();
       const otp = pickOtpText(texts);
       if (otp === null) {
-        throw new Error(texts.length === 0 ? '当前页没有识别到二维码' : '识别到的二维码不是验证码配置');
+        throw new UserError(texts.length === 0 ? 'error.qr.none' : 'error.qr.notOtp');
       }
       setText(otp);
       setPreview(parseImportText(otp));
     } catch (cause) {
-      setError(toErrorMessage(cause));
+      setError(describeError(cause));
     } finally {
       setScanning(false);
     }
@@ -81,28 +84,28 @@ export default function ImportPanel({ onDone, onCancel }: Props) {
       }
     }
     setBusy(false);
-    await onDone(`导入 ${added} 条${failed > 0 ? `，${failed} 条已存在或无效` : ''}`);
+    await onDone(
+      failed > 0 ? t('import.resultSkipped', { n: added, m: failed }) : t('import.result', { n: added }),
+    );
   };
 
   return (
     <div className="panel">
-      <div className="panel-title">导入</div>
-      <p className="hint">支持 Google Authenticator 迁移码、Aegis、2FAS、andOTP、Bitwarden，以及 otpauth 链接。</p>
+      <div className="panel-title">{t('import.title')}</div>
+      <p className="hint">{t('import.formats')}</p>
 
       <button className="btn ghost" onClick={() => void scan()} disabled={scanning}>
-        {scanning ? '识别中…' : '扫描当前页二维码'}
+        {scanning ? t('import.scanning') : t('import.scan')}
       </button>
-      <p className="hint">
-        截图在本地识别，图片不出本机。页面里有多个二维码时，取第一个能读懂的验证码配置。
-      </p>
+      <p className="hint">{t('import.scanHint')}</p>
 
       <label className="field">
-        <span>粘贴内容</span>
+        <span>{t('import.paste')}</span>
         <textarea
           className="input area"
           rows={5}
           value={text}
-          placeholder="otpauth-migration://offline?data=… 或 JSON 备份内容"
+          placeholder={t('import.placeholder')}
           onChange={(event) => {
             setText(event.target.value);
             setPreview(null);
@@ -112,10 +115,10 @@ export default function ImportPanel({ onDone, onCancel }: Props) {
 
       <div className="inline">
         <button className="btn ghost" onClick={() => fileRef.current?.click()}>
-          选择文件
+          {t('import.chooseFile')}
         </button>
         <button className="btn" onClick={parse} disabled={text.trim() === ''}>
-          解析
+          {t('import.parse')}
         </button>
         <input
           ref={fileRef}
@@ -131,30 +134,39 @@ export default function ImportPanel({ onDone, onCancel }: Props) {
       {preview && (
         <div className="preview">
           <div className="preview-head">
-            {preview.source} · 识别 {preview.entries.length} 条
-            {preview.skipped > 0 ? ` · 跳过 ${preview.skipped} 条` : ''}
+            {t('import.previewHead', {
+              source: preview.sourceKey ? t(preview.sourceKey) : preview.source,
+              n: preview.entries.length,
+            })}
+            {preview.skipped > 0 ? t('import.previewSkipped', { n: preview.skipped }) : ''}
           </div>
           <div className="preview-list">
             {preview.entries.slice(0, 12).map((entry, index) => (
               <div className="preview-row" key={`${entry.issuer}-${entry.account}-${index}`}>
-                <span className="preview-issuer">{entry.issuer || '未命名'}</span>
-                <span className="preview-account">{entry.account || '—'}</span>
+                <span className="preview-issuer">{entry.issuer || t('common.unnamed')}</span>
+                <span className="preview-account">{entry.account || t('common.none')}</span>
                 <span className="preview-meta">
-                  {entry.type.toUpperCase()} · {entry.digits}位
+                  {t('import.previewMeta', { type: entry.type.toUpperCase(), n: entry.digits })}
                 </span>
               </div>
             ))}
-            {preview.entries.length > 12 && <div className="hint">还有 {preview.entries.length - 12} 条未显示</div>}
+            {preview.entries.length > 12 && (
+              <div className="hint">{t('import.more', { n: preview.entries.length - 12 })}</div>
+            )}
           </div>
         </div>
       )}
 
       <div className="actions">
         <button className="btn ghost" onClick={onCancel}>
-          返回
+          {t('common.back')}
         </button>
         <button className="btn primary" onClick={apply} disabled={!preview || busy}>
-          {busy ? '导入中…' : preview ? `导入 ${preview.entries.length} 条` : '先解析'}
+          {busy
+            ? t('import.applying')
+            : preview
+              ? t('import.apply', { n: preview.entries.length })
+              : t('import.applyIdle')}
         </button>
       </div>
     </div>

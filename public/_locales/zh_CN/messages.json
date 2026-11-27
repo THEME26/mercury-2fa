@@ -1,0 +1,8 @@
+{
+  "extName": {
+    "message": "Mercury 2FA"
+  },
+  "extDescription": {
+    "message": "离线的 TOTP 验证码，零网络请求、不注册账号、不申请站点权限。"
+  }
+}

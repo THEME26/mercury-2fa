@@ -1,4 +1,5 @@
 import { normalizeSecret } from './base32';
+import { UserError } from './errors';
 import type { HmacAlgorithm, OtpType } from './types';
 
 export interface ParsedOtpAuth {
@@ -22,7 +23,7 @@ function mapAlgorithm(raw: string | null): HmacAlgorithm {
   if (key === 'SHA1') return 'SHA-1';
   if (key === 'SHA256') return 'SHA-256';
   if (key === 'SHA512') return 'SHA-512';
-  throw new Error(`不支持的算法：${raw}`);
+  throw new UserError('error.otpauth.algorithm', { value: raw }, `不支持的算法：${raw}`);
 }
 
 function intParam(
@@ -35,7 +36,7 @@ function intParam(
   if (raw === null || raw.trim() === '') return fallback;
   const value = Number(raw);
   if (!Number.isInteger(value) || value < min || value > max) {
-    throw new Error(`${name} 取值不合法：${raw}`);
+    throw new UserError('error.otpauth.param', { name, value: raw }, `${name} 取值不合法：${raw}`);
   }
   return value;
 }
@@ -50,13 +51,13 @@ export function parseOtpAuthUri(uri: string): ParsedOtpAuth {
   try {
     url = new URL(text);
   } catch {
-    throw new Error('链接格式无法解析');
+    throw new UserError('error.otpauth.uri', undefined, '链接格式无法解析');
   }
-  if (url.protocol !== 'otpauth:') throw new Error('不是 otpauth:// 链接');
+  if (url.protocol !== 'otpauth:') throw new UserError('error.otpauth.scheme', undefined, '不是 otpauth:// 链接');
 
   const host = url.hostname.toLowerCase();
   if (host !== 'totp' && host !== 'hotp' && host !== 'steam') {
-    throw new Error(`不支持的类型：${host || '(空)'}`);
+    throw new UserError('error.otpauth.type', { value: host || '(empty)' }, `不支持的类型：${host || '(空)'}`);
   }
 
   const rawLabel = url.pathname.replace(/^\//, '');
@@ -64,7 +65,7 @@ export function parseOtpAuthUri(uri: string): ParsedOtpAuth {
   try {
     label = decodeURIComponent(rawLabel);
   } catch {
-    throw new Error('标签含有非法的百分号编码');
+    throw new UserError('error.otpauth.encoding', undefined, '标签含有非法的百分号编码');
   }
 
   const colon = label.indexOf(':');
@@ -73,7 +74,7 @@ export function parseOtpAuthUri(uri: string): ParsedOtpAuth {
 
   const queryIssuer = (url.searchParams.get('issuer') ?? '').trim();
   const secretRaw = url.searchParams.get('secret');
-  if (secretRaw === null || secretRaw.trim() === '') throw new Error('链接里没有 secret 参数');
+  if (secretRaw === null || secretRaw.trim() === '') throw new UserError('error.otpauth.secret', undefined, '链接里没有 secret 参数');
 
   const type = host as OtpType;
   const parsed: ParsedOtpAuth = {

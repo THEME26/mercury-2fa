@@ -1,9 +1,13 @@
+import { UserError } from './errors';
 import { base32Encode, normalizeSecret } from './base32';
 import { parseOtpAuthUri, type ParsedOtpAuth } from './otpauth';
+import type { MessageKey } from './i18n/keys';
 import type { HmacAlgorithm, OtpType } from './types';
 
 export interface ImportResult {
   source: string;
+  /** 非品牌来源（迁移码、otpauth 链接）另给一个词条键，界面按当前语言显示 */
+  sourceKey?: MessageKey;
   entries: ParsedOtpAuth[];
   skipped: number;
 }
@@ -41,19 +45,19 @@ class Reader {
     let result = 0;
     let shift = 0;
     for (;;) {
-      if (this.pos >= this.buf.length) throw new Error('protobuf varint 越界');
+      if (this.pos >= this.buf.length) throw new UserError('error.import.malformed', undefined, 'protobuf varint 越界');
       const byte = this.buf[this.pos++] ?? 0;
       result += (byte & 0x7f) * 2 ** shift;
       if ((byte & 0x80) === 0) break;
       shift += 7;
-      if (shift > 63) throw new Error('protobuf varint 过长');
+      if (shift > 63) throw new UserError('error.import.malformed', undefined, 'protobuf varint 过长');
     }
     return result;
   }
 
   bytes(): Uint8Array {
     const length = this.varint();
-    if (this.pos + length > this.buf.length) throw new Error('protobuf 长度越界');
+    if (this.pos + length > this.buf.length) throw new UserError('error.import.malformed', undefined, 'protobuf 长度越界');
     const slice = this.buf.subarray(this.pos, this.pos + length);
     this.pos += length;
     return slice;
@@ -64,7 +68,7 @@ class Reader {
     else if (wireType === 2) this.bytes();
     else if (wireType === 5) this.pos += 4;
     else if (wireType === 1) this.pos += 8;
-    else throw new Error(`不支持的 protobuf 编码：${wireType}`);
+    else throw new UserError('error.import.malformed', undefined, `不支持的 protobuf 编码：${wireType}`);
   }
 }
 
@@ -109,7 +113,7 @@ function parseMigrationParams(chunk: Uint8Array): MigrationParams {
 /** otpauth-migration://offline?data=<base64url protobuf> */
 export function parseMigrationUri(uri: string): ParsedOtpAuth[] {
   const match = /^otpauth-migration:\/\/offline\?data=([A-Za-z0-9\-_%+=\/]+)/i.exec(uri.trim());
-  if (!match) throw new Error('不是 Google Authenticator 迁移链接');
+  if (!match) throw new UserError('error.import.notMigration', undefined, '不是 Google Authenticator 迁移链接');
 
   const encoded = decodeURIComponent(match[1] ?? '');
   const normalized = encoded.replace(/-/g, '+').replace(/_/g, '/');
@@ -146,7 +150,7 @@ export function parseMigrationUri(uri: string): ParsedOtpAuth[] {
     }
   }
 
-  if (results.length === 0) throw new Error('迁移码里没有可导入的条目');
+  if (results.length === 0) throw new UserError('error.import.emptyMigration', undefined, '迁移码里没有可导入的条目');
   return results;
 }
 
@@ -156,8 +160,8 @@ function splitLabel(name: string): [string, string] {
   return [name.slice(0, index).trim(), name.slice(index + 1).trim()];
 }
 
-function fail(message: string): never {
-  throw new Error(message);
+function fail(key: MessageKey, message: string): never {
+  throw new UserError(key, undefined, message);
 }
 
 function asArray(value: unknown): unknown[] {
@@ -194,7 +198,7 @@ function normalizeEntry(entry: {
 
 function parseAegis(root: unknown): ParsedOtpAuth[] {
   const db = pick(root, 'db');
-  if (pick(db, 'encrypted') === true) fail('Aegis 备份已加密，请先导出未加密版本');
+  if (pick(db, 'encrypted') === true) fail('error.import.aegisEncrypted', 'Aegis 备份已加密，请先导出未加密版本');
   const entries = asArray(pick(db, 'entries'));
   return entries.map((raw) => {
     const info = pick(raw, 'info');
@@ -272,27 +276,32 @@ function parseBitwarden(root: unknown): ParsedOtpAuth[] {
  */
 export function parseImportText(text: string): ImportResult {
   const trimmed = text.trim();
-  if (trimmed === '') throw new Error('内容为空');
+  if (trimmed === '') throw new UserError('error.import.empty', undefined, '内容为空');
 
   if (/^otpauth-migration:\/\//i.test(trimmed)) {
-    return { source: 'Google Authenticator 迁移码', entries: parseMigrationUri(trimmed), skipped: 0 };
+    return {
+      source: 'Google Authenticator 迁移码',
+      sourceKey: 'import.source.migration',
+      entries: parseMigrationUri(trimmed),
+      skipped: 0,
+    };
   }
 
   if (/^otpauth:\/\//i.test(trimmed)) {
     const lines = trimmed.split(/\r?\n/).map((line) => line.trim()).filter((line) => line !== '');
     const entries = lines.map((line) => parseOtpAuthUri(line));
-    return { source: 'otpauth 链接', entries, skipped: 0 };
+    return { source: 'otpauth 链接', sourceKey: 'import.source.otpauth', entries, skipped: 0 };
   }
 
   let root: unknown;
   try {
     root = JSON.parse(trimmed);
   } catch {
-    throw new Error('无法识别的内容，既不是 otpauth 链接也不是 JSON');
+    throw new UserError('error.import.unknown', undefined, '无法识别的内容，既不是 otpauth 链接也不是 JSON');
   }
 
   if (pick(root, 'format') === 'mercury-2fa-backup') {
-    throw new Error('这是 Mercury 的加密备份，请用「导入加密备份」入口');
+    throw new UserError('error.import.isBackup', undefined, '这是 Mercury 的加密备份，请用「导入加密备份」入口');
   }
 
   const attempts: Array<[string, (value: unknown) => ParsedOtpAuth[]]> = [
@@ -328,10 +337,10 @@ export function parseImportText(text: string): ImportResult {
         skipped += 1;
       }
     }
-    if (entries.length === 0) throw new Error(`${name} 备份里没有可导入的条目`);
+    if (entries.length === 0) throw new UserError('error.import.noEntries', { name }, `${name} 备份里没有可导入的条目`);
     return { source: name, entries, skipped };
   }
 
   if (errors.length > 0) throw new Error(errors[0]);
-  throw new Error('无法识别的 JSON 结构，支持 Aegis / 2FAS / andOTP / Bitwarden');
+  throw new UserError('error.import.unknownJson', undefined, '无法识别的 JSON 结构，支持 Aegis / 2FAS / andOTP / Bitwarden');
 }

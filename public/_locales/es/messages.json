@@ -1,0 +1,8 @@
+{
+  "extName": {
+    "message": "Mercury 2FA"
+  },
+  "extDescription": {
+    "message": "Códigos TOTP sin conexión. Sin peticiones de red, sin cuenta, sin permisos de sitio."
+  }
+}

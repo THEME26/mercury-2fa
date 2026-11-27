@@ -69,6 +69,11 @@ export type Target = 'vault' | 'offscreen';
 export interface VaultErrorShape {
   message: string;
   code?: string;
+  /** 文案键，界面据此本地化，`message` 只用于日志 */
+  key?: string;
+  params?: Record<string, string | number>;
+  /** 备份错误原因，恢复流程靠它区分「换文件」还是「换密码」 */
+  reason?: string;
 }
 
 export type VaultReply<T = unknown> = { ok: true; data: T } | { ok: false; error: VaultErrorShape };
@@ -241,13 +246,27 @@ export function okReply<T>(data: T): VaultReply<T> {
   return { ok: true, data };
 }
 
+/** 只放行标量参数，且最多八个键 —— 错误对象来自任意代码路径，不透传整块数据 */
+function errorParams(value: unknown): Record<string, string | number> | undefined {
+  if (typeof value !== 'object' || value === null) return undefined;
+  const out: Record<string, string | number> = {};
+  for (const [name, raw] of Object.entries(value as Record<string, unknown>)) {
+    if (typeof raw === 'string' || (typeof raw === 'number' && Number.isFinite(raw))) out[name] = raw;
+    if (Object.keys(out).length >= 8) break;
+  }
+  return Object.keys(out).length > 0 ? out : undefined;
+}
+
 export function errorReply(error: unknown): VaultReply<never> {
   if (error instanceof Error) {
-    const code = (error as { code?: unknown }).code;
-    return {
-      ok: false,
-      error: { message: error.message, code: typeof code === 'string' ? code : undefined },
-    };
+    const record = error as { code?: unknown; key?: unknown; params?: unknown; reason?: unknown };
+    const shape: VaultErrorShape = { message: error.message };
+    if (typeof record.code === 'string') shape.code = record.code;
+    if (typeof record.key === 'string') shape.key = record.key;
+    const params = errorParams(record.params);
+    if (params) shape.params = params;
+    if (typeof record.reason === 'string') shape.reason = record.reason;
+    return { ok: false, error: shape };
   }
   return { ok: false, error: { message: '未知错误' } };
 }

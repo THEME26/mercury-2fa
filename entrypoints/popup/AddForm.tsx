@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { toErrorMessage } from '../../lib/errors';
+import { describeError } from '../../lib/i18n/describe-error';
+import { useI18n } from '../../lib/i18n/react';
 import { isOtpAuthUri, parseOtpAuthUri } from '../../lib/otpauth';
 import { vaultService } from '../../lib/remote-client';
 import type { HmacAlgorithm, OtpType } from '../../lib/types';
@@ -27,6 +28,7 @@ const INITIAL: FormState = {
 };
 
 export default function AddForm({ onAdded, onCancel }: { onAdded: () => void; onCancel: () => void }) {
+  const { t } = useI18n();
   const [form, setForm] = useState<FormState>(INITIAL);
   const [link, setLink] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -51,14 +53,14 @@ export default function AddForm({ onAdded, onCancel }: { onAdded: () => void; on
       });
       setError(null);
     } catch (cause) {
-      setError((cause as Error).message);
+      setError(describeError(cause));
     }
   };
 
   const submit = async () => {
     setError(null);
     if (!form.secret.trim()) {
-      setError('种子不能为空');
+      setError(t('add.secretRequired'));
       return;
     }
     setBusy(true);
@@ -77,7 +79,7 @@ export default function AddForm({ onAdded, onCancel }: { onAdded: () => void; on
       });
       onAdded();
     } catch (cause) {
-      setError(toErrorMessage(cause));
+      setError(describeError(cause));
     } finally {
       setBusy(false);
     }
@@ -85,10 +87,10 @@ export default function AddForm({ onAdded, onCancel }: { onAdded: () => void; on
 
   return (
     <div className="panel">
-      <div className="panel-title">添加条目</div>
+      <div className="panel-title">{t('add.title')}</div>
 
       <label className="field">
-        <span>粘贴 otpauth 链接（可留空）</span>
+        <span>{t('add.link')}</span>
         <input
           className="input"
           value={link}
@@ -101,19 +103,19 @@ export default function AddForm({ onAdded, onCancel }: { onAdded: () => void; on
 
       <div className="grid2">
         <label className="field">
-          <span>类型</span>
+          <span>{t('add.type')}</span>
           <select
             className="input"
             value={form.type}
             onChange={(event) => patch({ type: event.target.value as OtpType })}
           >
-            <option value="totp">TOTP（按时间）</option>
-            <option value="hotp">HOTP（按次数）</option>
-            <option value="steam">Steam</option>
+            <option value="totp">{t('add.type.totp')}</option>
+            <option value="hotp">{t('add.type.hotp')}</option>
+            <option value="steam">{t('add.type.steam')}</option>
           </select>
         </label>
         <label className="field">
-          <span>发行方</span>
+          <span>{t('add.issuer')}</span>
           <input
             className="input"
             value={form.issuer}
@@ -124,7 +126,7 @@ export default function AddForm({ onAdded, onCancel }: { onAdded: () => void; on
       </div>
 
       <label className="field">
-        <span>账号</span>
+        <span>{t('add.account')}</span>
         <input
           className="input"
           value={form.account}
@@ -134,7 +136,7 @@ export default function AddForm({ onAdded, onCancel }: { onAdded: () => void; on
       </label>
 
       <label className="field">
-        <span>种子（Base32）</span>
+        <span>{t('add.secret')}</span>
         <input
           className="input mono"
           value={form.secret}
@@ -146,7 +148,7 @@ export default function AddForm({ onAdded, onCancel }: { onAdded: () => void; on
       {form.type !== 'steam' && (
         <div className="grid3">
           <label className="field">
-            <span>位数</span>
+            <span>{t('add.digits')}</span>
             <input
               className="input"
               type="number"
@@ -155,7 +157,7 @@ export default function AddForm({ onAdded, onCancel }: { onAdded: () => void; on
             />
           </label>
           <label className="field">
-            <span>{form.type === 'hotp' ? '计数器' : '周期(秒)'}</span>
+            <span>{form.type === 'hotp' ? t('add.counter') : t('add.period')}</span>
             <input
               className="input"
               type="number"
@@ -170,7 +172,7 @@ export default function AddForm({ onAdded, onCancel }: { onAdded: () => void; on
             />
           </label>
           <label className="field">
-            <span>算法</span>
+            <span>{t('add.algorithm')}</span>
             <select
               className="input"
               value={form.algorithm}
@@ -184,21 +186,16 @@ export default function AddForm({ onAdded, onCancel }: { onAdded: () => void; on
         </div>
       )}
 
-      {form.type !== 'steam' && (
-        <p className="hint">
-          SHA-1 / 6 位 / 30 秒是绝大多数服务的组合，GitHub、Google、AWS、Cloudflare 都用它。三个参数必须与服务端一致，
-          不一致的表现是验证码永远被拒。扫码导入会自动带上服务端的取值，手填时才需要自己核对。
-        </p>
-      )}
+      {form.type !== 'steam' && <p className="hint">{t('add.hint')}</p>}
 
       {error && <div className="error">{error}</div>}
 
       <div className="actions">
         <button className="btn ghost" type="button" onClick={onCancel}>
-          取消
+          {t('common.cancel')}
         </button>
         <button className="btn primary" type="button" onClick={submit} disabled={busy}>
-          {busy ? '保存中' : '保存'}
+          {busy ? t('common.saving') : t('common.save')}
         </button>
       </div>
     </div>

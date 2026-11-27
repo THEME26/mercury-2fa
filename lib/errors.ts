@@ -1,3 +1,5 @@
+import type { MessageKey, MessageParams } from './i18n/keys';
+
 export type VaultErrorCode =
   | 'locked'
   | 'empty'
@@ -30,13 +32,34 @@ export function asVaultErrorCode(value: unknown): VaultErrorCode {
   return typeof value === 'string' && KNOWN_CODES.includes(value) ? (value as VaultErrorCode) : 'unknown';
 }
 
+/**
+ * 界面显示什么由 `key` 决定，`message` 只留给日志与测试。
+ * 这样同一条错误在八种语言下都能出对应文案，而错误字符串本身不用跟着翻译。
+ */
 export class VaultError extends Error {
   readonly code: VaultErrorCode;
+  readonly key?: MessageKey;
+  readonly params?: MessageParams;
 
-  constructor(code: VaultErrorCode, message: string) {
+  constructor(code: VaultErrorCode, message: string, extra?: { key?: MessageKey; params?: MessageParams }) {
     super(message);
     this.name = 'VaultError';
     this.code = code;
+    this.key = extra?.key;
+    this.params = extra?.params;
+  }
+}
+
+/** 只带文案键、不带保险库状态的输入类错误：链接解析、种子校验、二维码识别 */
+export class UserError extends Error {
+  readonly key: MessageKey;
+  readonly params?: MessageParams;
+
+  constructor(key: MessageKey, params?: MessageParams, message?: string) {
+    super(message ?? key);
+    this.name = 'UserError';
+    this.key = key;
+    this.params = params;
   }
 }
 
@@ -52,8 +75,15 @@ export type BackupErrorReason = 'json' | 'magic' | 'version' | 'structure';
 export class BackupError extends VaultError {
   readonly reason: BackupErrorReason;
 
-  constructor(reason: BackupErrorReason, message: string) {
-    super('invalid', message);
+  constructor(
+    reason: BackupErrorReason,
+    message: string,
+    extra?: { key?: MessageKey; params?: MessageParams },
+  ) {
+    super('invalid', message, {
+      key: extra?.key ?? (`error.backup.${reason}` as MessageKey),
+      params: extra?.params,
+    });
     this.name = 'BackupError';
     this.reason = reason;
   }

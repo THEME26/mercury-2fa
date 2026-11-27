@@ -157,7 +157,7 @@ export class VaultService {
 
   async create(password: string, tier: KdfTier): Promise<number> {
     if (await this.getVault()) throw new VaultError('exists', '保险库已存在');
-    if (password.length < 8) throw new VaultError('invalid', '主密码至少 8 位');
+    if (password.length < 8) throw new VaultError('invalid', '主密码至少 8 位', { key: 'error.password.short' });
 
     const legacy = await this.local.get<{ entries?: EntryRecord[] }>(LEGACY_KEY);
     const entries = Array.isArray(legacy?.entries) ? legacy.entries : [];
@@ -262,7 +262,7 @@ export class VaultService {
         counter: parsed.counter,
       };
     }
-    if (!manual) throw new VaultError('invalid', '没有可导入的内容');
+    if (!manual) throw new VaultError('invalid', '没有可导入的内容', { key: 'error.entry.empty' });
 
     const entry = this.buildEntry(manual);
     const duplicated = entries.some(
@@ -271,7 +271,7 @@ export class VaultService {
         existing.issuer.toLowerCase() === entry.issuer.toLowerCase() &&
         existing.account.toLowerCase() === entry.account.toLowerCase(),
     );
-    if (duplicated) throw new VaultError('invalid', '这个账号已经在库里了');
+    if (duplicated) throw new VaultError('invalid', '这个账号已经在库里了', { key: 'error.entry.duplicate' });
 
     const next = sortEntries([...entries, entry]);
     await this.saveVault({ ...vault, payload: await this.host.sealEntries(next) }, next.length);
@@ -343,7 +343,9 @@ export class VaultService {
     } catch (error) {
       /** BackupError 先说：密文被改过时 AES-GCM 也报 OperationError，不能当成密码错 */
       if (error instanceof BackupError) throw error;
-      if (isWrongPassword(error)) throw new VaultError('wrong-password', '备份密码不正确');
+      if (isWrongPassword(error)) {
+        throw new VaultError('wrong-password', '备份密码不正确', { key: 'error.password.backupWrong' });
+      }
       throw new BackupError('structure', '备份内容无法解密，文件可能已损坏');
     }
     /** 文件里带了明文条数就核对，解出的数量对不上说明内容不全 */
@@ -351,6 +353,10 @@ export class VaultService {
       throw new BackupError(
         'structure',
         `备份内容不完整：声明 ${incoming.entryCount} 条，实际解出 ${incomingEntries.length} 条`,
+        {
+          key: 'error.backup.countMismatch',
+          params: { declared: incoming.entryCount, actual: incomingEntries.length },
+        },
       );
     }
 
@@ -379,13 +385,15 @@ export class VaultService {
   async changePassword(oldPassword: string, newPassword: string, tier?: KdfTier): Promise<void> {
     const vault = await this.getVault();
     if (!vault) throw new VaultError('empty', '还没有创建保险库');
-    if (newPassword.length < 8) throw new VaultError('invalid', '新主密码至少 8 位');
+    if (newPassword.length < 8) throw new VaultError('invalid', '新主密码至少 8 位', { key: 'error.password.newShort' });
 
     let dek: Uint8Array;
     try {
       dek = (await openVault(vault, oldPassword)).dek;
     } catch (error) {
-      if (isWrongPassword(error)) throw new VaultError('wrong-password', '原主密码不正确');
+      if (isWrongPassword(error)) {
+        throw new VaultError('wrong-password', '原主密码不正确', { key: 'error.password.oldWrong' });
+      }
       throw error;
     }
     const next = await rewrapVault(vault, dek, newPassword, tier);

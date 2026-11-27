@@ -1,0 +1,8 @@
+{
+  "extName": {
+    "message": "Mercury 2FA"
+  },
+  "extDescription": {
+    "message": "離線的 TOTP 驗證碼，零網路請求、不註冊帳號、不申請網站權限。"
+  }
+}

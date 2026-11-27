@@ -1,3 +1,5 @@
+import { UserError } from './errors';
+
 const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
 
 /**
@@ -10,11 +12,11 @@ export function normalizeSecret(raw: string): string {
     .replace(/=+$/, '')
     .toUpperCase();
 
-  if (cleaned.length === 0) throw new Error('种子为空');
+  if (cleaned.length === 0) throw new UserError('error.base32.empty', undefined, '种子为空');
   for (const ch of cleaned) {
-    if (!ALPHABET.includes(ch)) throw new Error(`种子含非法字符：${ch}`);
+    if (!ALPHABET.includes(ch)) throw new UserError('error.base32.char', { ch }, `种子含非法字符：${ch}`);
   }
-  if (cleaned.length % 8 === 1) throw new Error('种子长度不合法');
+  if (cleaned.length % 8 === 1) throw new UserError('error.base32.length', undefined, '种子长度不合法');
   return cleaned;
 }
 

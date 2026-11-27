@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
-import { describeClearDelay, scheduleClipboardClear } from '../../lib/clipboard';
-import { toErrorMessage } from '../../lib/errors';
+import { scheduleClipboardClear } from '../../lib/clipboard';
+import { describeError } from '../../lib/i18n/describe-error';
+import { useI18n } from '../../lib/i18n/react';
+import { getLanguagePreference, applyLanguagePreference } from '../../lib/i18n/preference';
 import { fillActivePage, getActivePage, type ActivePage } from '../../lib/fill/inject';
 import { bestMatch } from '../../lib/fill/site-match';
 import { vaultService } from '../../lib/remote-client';
@@ -21,6 +23,7 @@ function groupCode(code: string): string {
 }
 
 export default function App() {
+  const { t } = useI18n();
   const [status, setStatus] = useState<VaultStatus | null>(null);
   const [views, setViews] = useState<EntryView[]>([]);
   const [screen, setScreen] = useState<Screen>('main');
@@ -32,6 +35,7 @@ export default function App() {
   const [query, setQuery] = useState('');
   const [page, setPage] = useState<ActivePage | null>(null);
   const [filling, setFilling] = useState<string | null>(null);
+  const [language, setLanguage] = useState(getLanguagePreference());
 
   const flash = useCallback((message: string) => {
     setToast(message);
@@ -49,7 +53,7 @@ export default function App() {
         setViews([]);
       }
     } catch (cause) {
-      setFatal(toErrorMessage(cause));
+      setFatal(describeError(cause));
     }
   }, []);
 
@@ -79,21 +83,27 @@ export default function App() {
     return () => window.clearTimeout(timer);
   }, [pendingDelete]);
 
+  /** 「30 秒后清空」这类提示由语言决定词序，交给词条拼 */
+  const clearLabel = (ms: number): string =>
+    ms % 60_000 === 0
+      ? t('clipboard.clearIn', { n: t('clipboard.minutes', { n: ms / 60_000 }) })
+      : t('clipboard.clearIn', { n: t('clipboard.seconds', { n: Math.round(ms / 1000) }) });
+
   const copy = async (view: EntryView) => {
     try {
       await navigator.clipboard.writeText(view.code);
       const clearMs = status?.settings.clipboardClearMs ?? 0;
       await scheduleClipboardClear(clearMs);
-      const suffix = clearMs > 0 ? `，${describeClearDelay(clearMs)}` : '';
+      const delay = clearMs > 0 ? clearLabel(clearMs) : '';
       if (view.type === 'hotp') {
         await vaultService.bumpCounter(view.id);
         await refresh();
-        flash(`已复制，计数器已递增${suffix}`);
+        flash(delay === '' ? t('main.copiedHotp') : t('main.copiedHotpClearing', { delay }));
         return;
       }
-      flash(`已复制${suffix}`);
+      flash(delay === '' ? t('main.copied') : t('main.copiedClearing', { delay }));
     } catch (cause) {
-      flash(toErrorMessage(cause));
+      flash(describeError(cause));
     }
   };
 
@@ -112,10 +122,10 @@ export default function App() {
         await vaultService.bumpCounter(fresh.id);
         await refresh();
       }
-      flash(report.message);
+      flash(t(report.key, report.params));
       if (report.ok) window.setTimeout(() => window.close(), 700);
     } catch (cause) {
-      flash(toErrorMessage(cause));
+      flash(describeError(cause));
     } finally {
       setFilling(null);
     }
@@ -125,7 +135,7 @@ export default function App() {
     await vaultService.remove(id);
     setPendingDelete(null);
     await refresh();
-    flash('已删除');
+    flash(t('main.deleted'));
   };
 
   const lock = async () => {
@@ -138,16 +148,16 @@ export default function App() {
   if (fatal !== null) {
     return (
       <div className="lock">
-        <div className="lock-title">出错了</div>
+        <div className="lock-title">{t('main.errorTitle')}</div>
         <p className="lock-sub">{fatal}</p>
         <button className="btn" onClick={() => void refresh()}>
-          重试
+          {t('common.retry')}
         </button>
       </div>
     );
   }
 
-  if (status === null) return <div className="boot">加载中…</div>;
+  if (status === null) return <div className="boot">{t('common.loading')}</div>;
 
   if (status.state !== 'unlocked') {
     return (
@@ -165,7 +175,7 @@ export default function App() {
         onAdded={async () => {
           await refresh();
           setScreen('main');
-          flash('已添加');
+          flash(t('main.added'));
         }}
       />
     );
@@ -188,6 +198,11 @@ export default function App() {
     return (
       <SettingsPanel
         status={status}
+        language={language}
+        onLanguageChange={(preference) => {
+          setLanguage(preference);
+          void applyLanguagePreference(preference);
+        }}
         onChanged={refresh}
         onClose={() => setScreen('main')}
       />
@@ -212,12 +227,12 @@ export default function App() {
         </div>
         <div className="bar-actions">
           <button className="link" onClick={() => setEditing((value) => !value)}>
-            {editing ? '完成' : '编辑'}
+            {editing ? t('main.done') : t('main.edit')}
           </button>
           <button className="link" onClick={() => setScreen('settings')}>
-            设置
+            {t('main.settings')}
           </button>
-          <button className="icon-btn" title="添加条目" onClick={() => setScreen('add')}>
+          <button className="icon-btn" title={t('main.add')} onClick={() => setScreen('add')}>
             ＋
           </button>
         </div>
@@ -226,7 +241,7 @@ export default function App() {
       {views.length > 3 && (
         <input
           className="search"
-          placeholder="搜索发行方或账号"
+          placeholder={t('main.search')}
           value={query}
           onChange={(event) => setQuery(event.target.value)}
         />
@@ -235,8 +250,8 @@ export default function App() {
       <main className="list">
         {views.length === 0 && (
           <div className="empty">
-            <div className="empty-title">保险库是空的</div>
-            <p>点右上角 ＋ 手填种子，或到「设置」里导入备份。</p>
+            <div className="empty-title">{t('main.emptyTitle')}</div>
+            <p>{t('main.emptyBody')}</p>
           </div>
         )}
 
@@ -248,8 +263,8 @@ export default function App() {
           /** 只标与默认值不同的参数：SHA-1 / 6 位 / 30 秒不占位置 */
           const spec = [
             view.type === 'totp' && view.algorithm !== 'SHA-1' ? view.algorithm : null,
-            view.type !== 'steam' && view.digits !== 6 ? `${view.digits} 位` : null,
-            view.type === 'totp' && view.period !== 30 ? `${view.period} 秒` : null,
+            view.type !== 'steam' && view.digits !== 6 ? t('main.digits', { n: view.digits }) : null,
+            view.type === 'totp' && view.period !== 30 ? t('main.period', { n: view.period }) : null,
           ]
             .filter((part): part is string => part !== null)
             .join(' · ');
@@ -267,7 +282,7 @@ export default function App() {
             >
               <button
                 className={view.pinned ? 'pin active' : 'pin'}
-                title={view.pinned ? '取消置顶' : '置顶'}
+                title={view.pinned ? t('main.unpin') : t('main.pin')}
                 onClick={(event) => {
                   event.stopPropagation();
                   void togglePin(view.id);
@@ -276,26 +291,30 @@ export default function App() {
                 ★
               </button>
               <div className="row-main">
-                <div className="row-title">{view.issuer || '未命名'}</div>
+                <div className="row-title">{view.issuer || t('common.unnamed')}</div>
                 <div className="row-sub">
-                  <span className="acct">{view.account || '—'}</span>
+                  <span className="acct">{view.account || t('common.none')}</span>
                   {view.type !== 'totp' && <span className="tag">{view.type.toUpperCase()}</span>}
                   {view.type === 'hotp' && <span className="tag">#{view.step}</span>}
                   {spec !== '' && (
-                    <span className="tag" title="与服务端不一致时验证码必然被拒">
+                    <span className="tag" title={t('main.specHint')}>
                       {spec}
                     </span>
                   )}
-                  {view.sharedSecret && <span className="tag warn">共用种子</span>}
+                  {view.sharedSecret && (
+                    <span className="tag warn" title={t('main.sharedHint')}>
+                      {t('main.shared')}
+                    </span>
+                  )}
                 </div>
               </div>
               <div className={expiring ? 'row-code expiring' : 'row-code'}>
-                {remainingMs > 0 || view.expiresAt === 0 ? groupCode(view.code) : '· · ·  · · ·'}
+                {remainingMs > 0 || view.expiresAt === 0 ? groupCode(view.code) : t('main.codeHidden')}
               </div>
               {injectable && (
                 <button
                   className="row-fill"
-                  title="填入当前页"
+                  title={t('main.fillTitle')}
                   disabled={filling === view.id}
                   onClick={(event) => {
                     event.stopPropagation();
@@ -314,7 +333,7 @@ export default function App() {
                     else setPendingDelete(view.id);
                   }}
                 >
-                  {pendingDelete === view.id ? '确认' : '×'}
+                  {pendingDelete === view.id ? t('common.confirm') : '×'}
                 </button>
               )}
               {view.expiresAt > 0 && (
@@ -331,21 +350,19 @@ export default function App() {
         {autoTarget && (
           <>
             <button className="link strong" disabled={filling !== null} onClick={() => void fill(autoTarget)}>
-              填入 {autoTarget.issuer || '当前站点'}
+              {t('main.fillTarget', { name: autoTarget.issuer || t('main.fillCurrent') })}
             </button>
             <span className="foot-sep">·</span>
           </>
         )}
         <button className="link" onClick={() => setScreen('import')}>
-          导入
+          {t('main.import')}
         </button>
         <span className="foot-sep">·</span>
         <button className="link" onClick={() => void lock()}>
-          立即锁定
+          {t('main.lockNow')}
         </button>
-        <span className="foot-note">
-          {status.settings.lockAfterMs / 60000} 分钟自动锁定
-        </span>
+        <span className="foot-note">{t('main.autoLock', { n: status.settings.lockAfterMs / 60000 })}</span>
       </footer>
 
       {toast && <div className="toast">{toast}</div>}

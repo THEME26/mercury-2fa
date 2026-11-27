@@ -6,11 +6,11 @@
 
 [仓库](https://github.com/THEME26/mercury-2fa) · [隐私政策](https://theme26.github.io/mercury-2fa/privacy.html) · [上架材料](docs/STORE.zh-CN.md)
 
-当前版本 **v0.7.2**：扫码导入、共用种子提醒、DEK 只在 offscreen 进程内存里，存储读写经 service worker 代理，已备齐商店图标与 1280×800 截图。安装时不申请任何站点权限。
+当前版本 **v0.8.0**：界面支持八种语言且默认英文，扫码导入、共用种子提醒、DEK 只在 offscreen 进程内存里，存储读写经 service worker 代理，商店图标与 1280×800 截图中英各一套。安装时不申请任何站点权限。
 
 | 列表 | 导入 |
 |---|---|
-| ![列表](docs/list.png) | ![导入](docs/scan.png) |
+| ![列表](docs/list.zh-CN.png) | ![导入](docs/scan.zh-CN.png) |
 
 ## 已实现
 
@@ -29,6 +29,23 @@
 | 剪贴板 | 复制后按设置（30 秒 / 1 分钟 / 2 分钟 / 不清空）由 offscreen 覆写 |
 | 提醒 | 图标角标：超过 30 天没导出备份时出现 `!`；同一组种子挂在多个账号上时列表标「共用种子」 |
 | 自检 | 内置四项检查：往返解密、错误密码拒绝、密文篡改检测、派生耗时 |
+| 多语言 | 英、简中、繁中、日、韩、德、法、西八种界面语言，默认英文，设置内切换 |
+
+## 多语言
+
+默认英文。另有简体中文、繁体中文、日文、韩文、德文、法文、西班牙文，在「设置 → 语言」里切换。
+
+语言偏好存在 `storage.local` 的 `ui.language` 里，位于加密保险库之外。这样锁定界面在还没解密任何东西之前就能按所选语言渲染；如果把这个偏好存进保险库，解锁前读不到，登录界面就只能一直是错的语言。
+
+八份词条靠三件事对齐：
+
+- **一份母本。** `lib/i18n/messages/en.ts` 定出 `MessageKey = keyof typeof en`，其余语言都声明为 `Record<MessageKey, string>`，少一个键或写错键名会在 `tsc --noEmit` 阶段失败，不会拖到运行时变成空白。
+- **库层只带键，不带文字。** `keys.ts` 用 `import type` 引用字典，所以 `VaultError`、`UserError`、填充结果都能用 `MessageKey` 而不把八份字典塞进 offscreen 分块。offscreen 分块仍是 43 KB，字典都落在 popup 分块里，那才是真正渲染文字的地方。
+- **错误在边界上翻译。** `describeError()` 依次按 key、后端 `reason`、旧 `code`、原始 message 取文案，深处抛出的错误到了用户眼前也是当前语言。
+
+`tests/i18n.test.ts` 断言八种语言的键集合完全相同、占位符与英文一致、没有空词条，并覆盖语言匹配（`zh-HK` → `zh-TW`、`ru-RU` → `en`）。
+
+manifest 声明 `default_locale: 'en'` 与 `public/_locales/{en,zh_CN,zh_TW,ja,ko,de,fr,es}/messages.json`，扩展列表里的名称与描述跟浏览器语言走，与界面内的设置互不影响。
 
 ## 四个上下文，各管一件事
 
@@ -104,7 +121,7 @@ popup（界面）  --命令-->  service worker（路由 + 存储）  --命令-->
 
 | 项目 | 结果 |
 |---|---|
-| 单元测试 | **147 项**全通过 |
+| 单元测试 | **164 项**全通过 |
 | RFC 4226 十组 HOTP 向量 | 全部匹配 |
 | RFC 6238 六时点 × SHA1/256/512 | 18 组全部匹配 |
 | 命令白名单 | 未知 op / target 不符 / 缺字段 / 超长文本 / 多余字段注入，逐项拒绝 |
@@ -122,7 +139,11 @@ popup（界面）  --命令-->  service worker（路由 + 存储）  --命令-->
 | 剪贴板清空路径 | offscreen 内 `navigator.clipboard.writeText` 必报 `Document is not focused`，`document.execCommand('copy')` 返回 `true`，清空走后者 |
 | 分块隔离 | popup 分块中 `argon2id` / `wrappedDek` / `AES-GCM` 匹配数均为 0 |
 | 类型检查 | `tsc --noEmit` 0 错误 |
-| 产物 | 1.31 MB（含 946 KB wasm），权限 `storage`、`idle`、`clipboardWrite`、`activeTab`、`scripting`、`alarms`、`offscreen`，无 `host_permissions` |
+| 词条对齐 | 八种语言的键集合完全相同、无空词条、占位符与英文一致；少键会在类型检查阶段报错 |
+| 真机切语言 | Edge 加载未打包产物：首屏英文，切到 `ja` 后各面板立即重渲染，重载后列表与锁屏仍是日文，切回 `en` 复原 |
+| 清单本地化 | `chrome.runtime.getManifest().name` 取到 `Mercury 2FA`，`chrome.i18n.getMessage('extDescription')` 返回对应语言的描述，压缩包里带八种语言的 `_locales` |
+| 文档语言标记 | `<html lang>` 在首帧就与渲染语言一致，包括语言没变、模板里残留旧值的英文首屏 |
+| 产物 | 1.36 MB（含 946 KB wasm），权限 `storage`、`idle`、`clipboardWrite`、`activeTab`、`scripting`、`alarms`、`offscreen`，无 `host_permissions` |
 
 没验过的两条，必须在真机确认：
 
@@ -134,8 +155,8 @@ popup（界面）  --命令-->  service worker（路由 + 存储）  --命令-->
 | 项 | 卡在哪 |
 |---|---|
 | 常驻挂标（零点击） | 需要可选站点权限 + 商店逐条写理由，等 activeTab 路径跑够数据再说 |
-| 全量 i18n | 界面目前只有中文，`_locales` 只覆盖名称与描述 |
 | 时钟偏差提示 | 扩展看不到登录页的失败原因，只能靠用户自己发现，做不出可靠判定 |
+| 其余六种语言的商店截图 | 目前只有英文与中文两套；文案语言要与界面语言一致，每加一种就得单独跑一次截图 |
 
 ## 安全模型
 
@@ -177,8 +198,9 @@ lib/crypto.ts            Argon2id + AES-GCM + 备份格式
 lib/crypto-host.ts       加密边界；唯一实现把 DEK 放在内存变量里
 lib/browser-store.ts     storage.local / storage.session 适配
 lib/importers.ts         GA protobuf、各家 JSON、otpauth 串
+lib/i18n/                八份词条、键类型、语言匹配、语言偏好、useI18n
 lib/totp.ts …            取码内核
-tests/                   147 项，含二维码样本与 jsdom 填充用例
+tests/                   164 项，含二维码样本与 jsdom 填充用例
 ```
 
 ## 数据格式
@@ -202,13 +224,15 @@ tests/                   147 项，含二维码样本与 jsdom 填充用例
 
 ```bash
 npm install
-npm test              # 147 项
+npm test              # 164 项
 npm run compile       # tsc --noEmit
 npm run build         # .output/chrome-mv3
 npm run build:edge    # .output/edge-mv3
 npm run zip           # 上架用压缩包（当前版本，两个目标各一份）
 npm run pack          # 构建 Edge 并打包 zip
 npm run assets        # 生成图标与 1280×800 商店截图
+npm run shots         # 真实 Edge 构建里重截源图
+npm run shots -- zh-CN  # 同上，中文那一套
 ```
 
 ## 加载与绑定 GitHub

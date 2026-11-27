@@ -2,16 +2,16 @@
 
 [English](STORE.md) | **简体中文**
 
-版本 0.7.2。本文件按「逐项复制进表单」组织，代码变更后回来同步。
+版本 0.8.0。本文件按「逐项复制进表单」组织，代码变更后回来同步。
 
 ## 一、基本信息
 
 | 字段 | 值 |
 |---|---|
 | 名称（取自 manifest，不可改） | Mercury 2FA |
-| 版本 | 0.7.2 |
+| 版本 | 0.8.0 |
 | 类别 | Productivity |
-| 语言 | 中文（简体） |
+| 语言 | 英文（默认），另有简体中文、繁体中文、日文、韩文、德文、法文、西班牙文，设置内切换 |
 | 单一用途 | 在本机生成并填写两步验证验证码 |
 
 单一用途陈述（商店要求，须窄）：
@@ -19,6 +19,10 @@
 > 生成基于时间的一次性验证码（TOTP）并填入登录页面，数据只存本机。
 
 ## 二、商店文案
+
+界面共八种语言，默认英文，因此主提交英文文案（见 `STORE.md` 第二节），本节的简体中文文案用于 `zh-CN` 语言列表。manifest 已声明 `zh_CN`、`zh_TW`、`ja`、`ko`、`de`、`fr`、`es`，Partner Center 会按语言从包内取名称与描述。
+
+语言设置存在加密保险库之外，因此锁定界面也会跟着所选语言变，不必先解锁。
 
 简短描述（132 字符内）：
 
@@ -42,6 +46,7 @@
 > - 从 Google Authenticator、Aegis、2FAS、andOTP、Bitwarden 迁移
 > - 加密备份导出与恢复，恢复时核对条数
 > - 复制后定时清空剪贴板
+> - 界面支持八种语言，设置里随时切换
 >
 > 主密码不可找回。首次使用后立即导出备份，并保存各服务的恢复码。
 
@@ -93,20 +98,30 @@
 | 截图 2 导入 | `docs/store/shot-2-import.png` | 1280 × 800 PNG |
 | 截图 3 设置与备份 | `docs/store/shot-3-settings.png` | 1280 × 800 PNG |
 | 截图 4 锁定态 | `docs/store/shot-4-lock.png` | 1280 × 800 PNG |
+| 同样四张，中文界面 | `docs/store/shot-N-*.zh-CN.png` | 1280 × 800 PNG |
 | 小推广图（可选） | `docs/store/promo-440x280.png` | 440 × 280 PNG |
 | 扩展内图标 | `public/icon/16.png` 等 4 个 | 16 / 32 / 48 / 128 |
 
 重新生成：`npm run assets`（依赖 devDependency `sharp`；版式定义在 `tools/make-assets.mjs`）。
 
-源图为 `docs/live/*.png`，由 `tools/shoot-store.mjs` 在真实 Edge 里加载构建产物后截取（4 倍图，无调试输出）。界面改动后的顺序：`npm run build:edge` → `npm run shots` → `npm run assets`。`npm run assets` 同时把干净版本覆盖到 `docs/list.png`、`docs/scan.png`、`docs/settings.png`、`docs/lock.png`，README 内嵌图随之更新。
+源图为英文的 `docs/live/*.png` 与中文的 `docs/live/zh-CN/*.png`，均由 `tools/shoot-store.mjs` 在真实 Edge 里加载构建产物后截取（4 倍图，无调试输出）。文案语言要与界面语言一致，两套分开截：
+
+```
+npm run build:edge
+npm run shots              # 英文，写 docs/live/
+npm run shots -- zh-CN     # 中文，写 docs/live/zh-CN/
+npm run assets             # 两套一起出图到 docs/store/
+```
+
+`npm run assets` 同时把干净版本覆盖到 `docs/list.png`、`docs/scan.png`、`docs/settings.png`、`docs/lock.png`，README 内嵌图随之更新。新增语言时要改 `tools/shoot-store.mjs` 的 `LABELS` 与 `tools/make-assets.mjs` 的 `SHOTS` 两处。
 
 ### 2. 安装包
 
 | 项目 | 值 |
 |---|---|
-| 文件 | `.output/mercury-2fa-0.7.2-edge.zip` |
-| 大小 | 547 KB（解压后 1.33 MB） |
-| 结构 | `manifest.json` 在压缩包根目录，17 个文件，含 `licenses/` 三份许可证副本 |
+| 文件 | `.output/mercury-2fa-0.8.0-edge.zip` |
+| 大小 | 561 KB（解压后 1.36 MB） |
+| 结构 | `manifest.json` 在压缩包根目录，25 个文件，含八个 `_locales` 目录与 `licenses/` 三份许可证副本 |
 | 生成 | `npm run pack`（等价于 `wxt build -b edge && wxt zip -b edge`） |
 
 压缩包根目录必须是 `manifest.json`，不能多套一层文件夹，否则 Partner Center 解析失败。
@@ -114,7 +129,7 @@
 ## 七、提交流程
 
 1. 打开 `https://partner.microsoft.com/dashboard/microsoftedge`，用 Microsoft 账号登录。首次进入选择「注册 Microsoft Edge 计划」，注册免费，不需要信用卡。
-2. 「Edge 扩展」仪表板 → 新建扩展 → 上传 `.output/mercury-2fa-0.7.2-edge.zip`。系统解析 manifest，无红色报错即可继续。
+2. 「Edge 扩展」仪表板 → 新建扩展 → 上传 `.output/mercury-2fa-0.8.0-edge.zip`。系统解析 manifest，无红色报错即可继续。
 3. 属性（Properties）
    - 类别：Productivity
    - 隐私政策 URL：https://theme26.github.io/mercury-2fa/privacy.html
@@ -143,8 +158,10 @@
 > 1. 点击工具栏图标，首次打开显示「设置主密码」。输入任意 8 位以上密码并确认，派生耗时约 0.4 秒。
 > 2. 界面进入空列表。点右上角「＋」，在链接框粘贴 `otpauth://totp/GitHub:test?secret=JBSWY3DPEHPK3PXP&issuer=GitHub`，点保存。
 > 3. 列表出现一行 GitHub，右侧显示 6 位数字与倒计时进度条，每 30 秒刷新。点数字即复制。
-> 4. 点「设置」可看到自动锁定、剪贴板清空、更换主密码、导出备份。
+> 4. 点「设置」可看到语言、自动锁定、剪贴板清空、更换主密码、导出备份。
 > 5. 点「立即锁定」回到密码界面，重新输入密码可解锁。
+>
+> 界面默认英文。设置 → 语言可切换八种语言，该设置存在加密保险库之外，锁定界面也会跟着变，不需要先输密码。
 >
 > 说明：验证码由种子与当前时间计算，设备时钟与真实时间相差超过 30 秒时数字不会被任何服务接受，属 TOTP 协议特性。扩展全程不发起网络请求，可在断网环境验证。
 
@@ -156,8 +173,10 @@ English version:
 > 1. Click the toolbar icon. On first run a master password screen appears. Enter any password of 8+ characters; key derivation takes about 0.4 s.
 > 2. The list is empty. Click "+" at the top right, paste `otpauth://totp/GitHub:test?secret=JBSWY3DPEHPK3PXP&issuer=GitHub` into the URI field and save.
 > 3. A GitHub row appears with a 6-digit code and a countdown bar, refreshing every 30 s. Clicking the digits copies them.
-> 4. "Settings" exposes auto-lock, clipboard clearing, password change and encrypted backup export.
+> 4. "Settings" exposes language, auto-lock, clipboard clearing, password change and encrypted backup export.
 > 5. "Lock now" returns to the password screen; unlocking requires the same password.
+>
+> The interface starts in English. Settings → Language lists eight languages; the choice is stored outside the encrypted vault, so the lock screen switches too, before any password is entered.
 >
 > Note: codes are derived from the seed and the current time, so a device clock off by more than 30 s will produce codes no server accepts. The extension makes no network requests at all and works with networking disabled.
 
@@ -178,12 +197,12 @@ English version:
 
 ## 十、提交前检查
 
-- [x] `npm test` 147 项全通过
+- [x] `npm test` 164 项全通过
 - [x] `npm run compile` 0 错误
 - [x] `npm run build` 与 `npm run build:edge` 均成功
 - [x] `manifest.json` 无 `host_permissions`，无 `content_scripts`
 - [x] 图标 16 / 32 / 48 / 128 已入包
-- [x] 截图 4 张 1280 × 800，Logo 300 × 300
+- [x] 截图 4 张 1280 × 800，Logo 300 × 300，另备中文一套
 - [x] ZIP 根目录为 `manifest.json`
 - [x] 隐私政策已托管，匿名可访问
 - [ ] Partner Center 账号已注册

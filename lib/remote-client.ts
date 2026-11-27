@@ -1,8 +1,11 @@
 import { browser } from 'wxt/browser';
-import { asVaultErrorCode, VaultError } from './errors';
+import { asVaultErrorCode, BackupError, VaultError, type BackupErrorReason } from './errors';
+import type { MessageKey } from './i18n/keys';
 import { isReply, type VaultCommand } from './protocol';
 import type { EntryView, KdfTier, NewEntryInput, Settings, VaultStatus } from './types';
 import type { SelfTestReport } from './vault-service';
+
+const BACKUP_REASONS: readonly string[] = ['json', 'magic', 'version', 'structure'];
 
 /** Argon2id 高档在慢机器上要 1.5s，加上导入解密，超时给足 */
 const TIMEOUT_MS = 30_000;
@@ -18,7 +21,15 @@ async function send<T>(command: VaultCommand): Promise<T> {
     const reply = await Promise.race([browser.runtime.sendMessage(message), timeout]);
     if (!isReply(reply)) throw new VaultError('no-handler', '后台没有返回结果，请重试');
     if (!reply.ok) {
-      throw new VaultError(asVaultErrorCode(reply.error.code), reply.error.message);
+      const { code, message: text, key, params, reason } = reply.error;
+      /** 备份错误按原因重建，界面据此区分换文件还是换密码 */
+      if (typeof reason === 'string' && BACKUP_REASONS.includes(reason)) {
+        throw new BackupError(reason as BackupErrorReason, text);
+      }
+      throw new VaultError(asVaultErrorCode(code), text, {
+        key: typeof key === 'string' ? (key as MessageKey) : undefined,
+        params,
+      });
     }
     return reply.data as T;
   } finally {

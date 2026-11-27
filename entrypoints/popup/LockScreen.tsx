@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { toErrorMessage } from '../../lib/errors';
+import { describeError } from '../../lib/i18n/describe-error';
+import { useI18n } from '../../lib/i18n/react';
 import { vaultService } from '../../lib/remote-client';
 import { KDF_TIERS, type KdfTier, type VaultStatus } from '../../lib/types';
 
@@ -9,6 +10,7 @@ interface Props {
 }
 
 export default function LockScreen({ status, onDone }: Props) {
+  const { t } = useI18n();
   const creating = status.state === 'empty';
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
@@ -19,7 +21,7 @@ export default function LockScreen({ status, onDone }: Props) {
   const submit = async () => {
     setError(null);
     if (creating && password !== confirm) {
-      setError('两次输入的主密码不一致');
+      setError(t('lock.mismatch'));
       return;
     }
     setBusy(true);
@@ -29,7 +31,7 @@ export default function LockScreen({ status, onDone }: Props) {
       setPassword('');
       await onDone();
     } catch (cause) {
-      setError(toErrorMessage(cause));
+      setError(describeError(cause));
     } finally {
       setBusy(false);
     }
@@ -50,27 +52,19 @@ export default function LockScreen({ status, onDone }: Props) {
           <circle cx="17" cy="17" r="2.04" fill="#fff" />
         </svg>
       </div>
-      <div className="lock-title">{creating ? '设置主密码' : '保险库已锁定'}</div>
-      <p className="lock-sub">
-        {creating
-          ? '主密码只在本机用于派生密钥，不上传、不可找回。'
-          : '输入主密码解锁，空闲超时会自动锁定。'}
-      </p>
+      <div className="lock-title">{creating ? t('lock.createTitle') : t('lock.lockedTitle')}</div>
+      <p className="lock-sub">{creating ? t('lock.createSub') : t('lock.lockedSub')}</p>
 
-      {creating && status.hasLegacy && (
-        <div className="banner">
-          检测到 v0.1 明文库，创建保险库时会自动加密迁移，原键随后删除。
-        </div>
-      )}
+      {creating && status.hasLegacy && <div className="banner">{t('lock.legacy')}</div>}
 
       <label className="field">
-        <span>主密码</span>
+        <span>{t('lock.password')}</span>
         <input
           className="input"
           type="password"
           autoFocus
           value={password}
-          placeholder={creating ? '至少 8 位' : '输入主密码'}
+          placeholder={creating ? t('lock.passwordPlaceholderNew') : t('lock.passwordPlaceholderUnlock')}
           onChange={(event) => setPassword(event.target.value)}
           onKeyDown={(event) => {
             if (event.key === 'Enter' && !creating) void submit();
@@ -81,7 +75,7 @@ export default function LockScreen({ status, onDone }: Props) {
       {creating && (
         <>
           <label className="field">
-            <span>再输一次</span>
+            <span>{t('lock.repeat')}</span>
             <input
               className="input"
               type="password"
@@ -93,11 +87,11 @@ export default function LockScreen({ status, onDone }: Props) {
             />
           </label>
           <label className="field">
-            <span>派生强度</span>
+            <span>{t('lock.tier')}</span>
             <select className="input" value={tier} onChange={(event) => setTier(event.target.value as KdfTier)}>
               {(Object.keys(KDF_TIERS) as KdfTier[]).map((key) => (
                 <option key={key} value={key}>
-                  {KDF_TIERS[key].label}
+                  {t(`lock.tier.${key}`)}
                 </option>
               ))}
             </select>
@@ -108,10 +102,16 @@ export default function LockScreen({ status, onDone }: Props) {
       {error && <div className="error">{error}</div>}
 
       <button className="btn primary wide" onClick={submit} disabled={busy || password.length === 0}>
-        {busy ? (creating ? '正在派生密钥…' : '正在解锁…') : creating ? '创建保险库' : '解锁'}
+        {busy
+          ? creating
+            ? t('lock.deriving')
+            : t('lock.unlocking')
+          : creating
+            ? t('lock.create')
+            : t('lock.unlock')}
       </button>
 
-      {creating && <div className="hint">强度越高，每次解锁越慢；换机器可改档，只重封装密钥。</div>}
+      {creating && <div className="hint">{t('lock.tierHint')}</div>}
     </div>
   );
 }

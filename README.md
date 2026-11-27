@@ -6,7 +6,7 @@ Offline TOTP extension for Chrome and Edge. No network requests, no account, no 
 
 [Repository](https://github.com/THEME26/mercury-2fa) · [Privacy policy](https://theme26.github.io/mercury-2fa/privacy.html) · [Store materials](docs/STORE.md) · [中文](README.zh-CN.md)
 
-Current version **v0.7.2**: QR import, shared-seed warnings, DEK confined to the offscreen process, storage routed through the service worker, store icon and 1280×800 screenshots ready. No site permissions requested at install time.
+Current version **v0.8.0**: eight interface languages with English as the default, QR import, DEK confined to the offscreen process, storage routed through the service worker, store icon and two sets of 1280×800 screenshots (English and Chinese). No site permissions requested at install time.
 
 | List | Import |
 |---|---|
@@ -29,6 +29,23 @@ Current version **v0.7.2**: QR import, shared-seed warnings, DEK confined to the
 | Clipboard | Copied codes are overwritten by the offscreen document after the configured delay (30 s / 1 min / 2 min / never) |
 | Warnings | Badge `!` when no backup has been exported for 30 days; entries sharing one seed are marked "shared seed" |
 | Self-check | Four built-in checks: round-trip decrypt, wrong-password rejection, ciphertext tamper detection, derivation timing |
+| Interface languages | Eight locales, English default, switchable in Settings; the manifest name and description follow the browser language |
+
+## Languages
+
+English is the default. The interface also ships in Simplified Chinese, Traditional Chinese, Japanese, Korean, German, French and Spanish, switchable under Settings → Language.
+
+The choice is stored in `storage.local` under `ui.language`, outside the encrypted vault. The lock screen therefore renders in the selected language before anything is decrypted; a preference stored inside the vault could not be read until after unlocking, which would leave the unlock screen in the wrong language.
+
+Three things keep the eight dictionaries honest:
+
+- **One master dictionary.** `lib/i18n/messages/en.ts` defines `MessageKey = keyof typeof en`; every other locale is typed `Record<MessageKey, string>`, so a missing or misspelled key fails `tsc --noEmit` instead of rendering blank at runtime.
+- **The library layer carries keys, not text.** `keys.ts` imports the dictionary with `import type`, so `VaultError`, `UserError` and the fill report reference `MessageKey` without pulling all eight dictionaries into the offscreen chunk. The offscreen chunk stays at 43 KB; the dictionaries land in the popup chunk, which is where text is rendered.
+- **Errors are localized at the boundary.** `describeError()` resolves a key first, then a backend `reason`, then a legacy `code`, then the raw message, so an error thrown deep in `vault-service` still reaches the user in their language.
+
+`tests/i18n.test.ts` asserts key-set equality, placeholder parity and non-empty entries across all eight locales, plus locale matching (`zh-HK` → `zh-TW`, `ru-RU` → `en`).
+
+The manifest declares `default_locale: 'en'` and `public/_locales/{en,zh_CN,zh_TW,ja,ko,de,fr,es}/messages.json`, so the name and description in the browser's extension list follow the browser language, not the in-app setting.
 
 ## Four contexts, one job each
 
@@ -104,7 +121,7 @@ One seed across two accounts means a single leak compromises both, and it usuall
 
 | Item | Result |
 |---|---|
-| Unit tests | **147** passing |
+| Unit tests | **164** passing |
 | RFC 4226 HOTP vectors (10) | all match |
 | RFC 6238 six timestamps × SHA1/256/512 | 18 of 18 match |
 | Command whitelist | unknown op / wrong target / missing field / oversized text / injected extra fields, each rejected |
@@ -122,7 +139,11 @@ One seed across two accounts means a single leak compromises both, and it usuall
 | Clipboard clearing path | in the offscreen document `navigator.clipboard.writeText` always fails with `Document is not focused`; `document.execCommand('copy')` returns `true`, so clearing uses the latter |
 | Chunk isolation | popup chunk has zero matches for `argon2id` / `wrappedDek` / `AES-GCM` |
 | Type check | `tsc --noEmit` clean |
-| Artifact | 1.31 MB (946 KB of that is wasm), permissions `storage`, `idle`, `clipboardWrite`, `activeTab`, `scripting`, `alarms`, `offscreen`, no `host_permissions` |
+| i18n key parity | all eight dictionaries hold the same key set, no empty entry, placeholders identical to English; a missing key fails the type check |
+| i18n in a real browser | unpacked build in Edge: first screen English, language switch to `ja` re-renders every panel immediately, after a reload the list and the lock screen are still Japanese, switch back to `en` restores it |
+| Manifest localization | `chrome.runtime.getManifest().name` resolves to `Mercury 2FA`, `chrome.i18n.getMessage('extDescription')` returns the localized description, `_locales` for eight languages ship in the zip |
+| Document language | `<html lang>` matches the rendered language on the first frame, including the initial English case where the locale never changes |
+| Artifact | 1.36 MB (946 KB of that is wasm), permissions `storage`, `idle`, `clipboardWrite`, `activeTab`, `scripting`, `alarms`, `offscreen`, no `host_permissions` |
 
 Two items remain unverified and require a real machine:
 
@@ -134,8 +155,8 @@ Two items remain unverified and require a real machine:
 | Item | Blocker |
 |---|---|
 | Always-on field markers (zero click) | Needs optional host permissions and a per-site justification for store review; waiting until the activeTab path has enough field data |
-| Full i18n | The UI is Chinese only; `_locales` covers name and description |
 | Clock skew warning | The extension never sees why a login failed, so any verdict would be guesswork |
+| Store screenshots for the other six languages | Only the English and Chinese sets exist; each further language needs its own capture run, because the caption and the interface have to match |
 
 ## Security model
 
@@ -177,8 +198,9 @@ lib/crypto.ts            Argon2id + AES-GCM + backup format
 lib/crypto-host.ts       crypto boundary; the only implementation keeps the DEK in memory
 lib/browser-store.ts     storage.local / storage.session adapters
 lib/importers.ts         GA protobuf, third-party JSON, otpauth URIs
+lib/i18n/                eight dictionaries, key type, locale detection, language preference, useI18n
 lib/totp.ts …            code generation
-tests/                   147 tests, including a QR fixture and jsdom autofill cases
+tests/                   164 tests, including a QR fixture and jsdom autofill cases
 ```
 
 ## Data format
@@ -202,7 +224,7 @@ Three derivation tiers: low 19 MiB/t=2 (~100 ms), medium 64 MiB/t=3 (~400 ms), h
 
 ```bash
 npm install
-npm test              # 147 tests
+npm test              # 164 tests
 npm run compile       # tsc --noEmit
 npm run build         # .output/chrome-mv3
 npm run build:edge    # .output/edge-mv3
@@ -210,6 +232,7 @@ npm run zip           # store package, one per target
 npm run pack          # build Edge and zip
 npm run assets        # icons and 1280×800 store screenshots
 npm run shots         # retake source screenshots from a real Edge build
+npm run shots -- zh-CN  # same for the Chinese set
 ```
 
 ## Loading and binding GitHub

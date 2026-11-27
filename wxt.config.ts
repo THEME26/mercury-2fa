@@ -4,9 +4,11 @@ import { EXTENSION_PUBLIC_KEY } from './keys/pubkey';
 export default defineConfig({
   modules: ['@wxt-dev/module-react'],
   manifest: {
-    name: 'Mercury 2FA',
-    description: '离线 TOTP 验证码，零网络请求，不依赖任何账号。',
-    version: '0.7.2',
+    /** 名称与描述走 _locales，浏览器按自身语言取对应文本，英文是兜底 */
+    name: '__MSG_extName__',
+    description: '__MSG_extDescription__',
+    default_locale: 'en',
+    version: '0.8.0',
     key: EXTENSION_PUBLIC_KEY,
     icons: {
       16: 'icon/16.png',
@@ -33,7 +35,7 @@ export default defineConfig({
       extension_pages: "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'",
     },
     action: {
-      default_title: 'Mercury 2FA',
+      default_title: '__MSG_extName__',
     },
     minimum_chrome_version: '116',
   },

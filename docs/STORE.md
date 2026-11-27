@@ -1,6 +1,6 @@
 # Edge Store Submission: Materials and Steps
 
-Version 0.7.2. Each block below can be copied into the Partner Center form as it stands. Update this file whenever the extension changes.
+Version 0.8.0. Each block below can be copied into the Partner Center form as it stands. Update this file whenever the extension changes.
 
 **English** | [简体中文](STORE.zh-CN.md)
 
@@ -9,9 +9,9 @@ Version 0.7.2. Each block below can be copied into the Partner Center form as it
 | Field | Value |
 |---|---|
 | Name (from manifest, not editable) | Mercury 2FA |
-| Version | 0.7.2 |
+| Version | 0.8.0 |
 | Category | Productivity |
-| Language | Simplified Chinese (the in-extension UI); see the note under §2 |
+| Language | English (default), plus Simplified Chinese, Traditional Chinese, Japanese, Korean, German, French and Spanish; the user switches inside Settings |
 | Single purpose | Generate and fill two-factor codes on the local device |
 
 Single purpose statement (the store requires it to be narrow):
@@ -20,7 +20,9 @@ Single purpose statement (the store requires it to be narrow):
 
 ## 2. Store listing copy
 
-The in-extension UI is Simplified Chinese, so the Chinese copy below is the one to submit today. The English copy is kept ready for an English listing once the UI is localized.
+The interface ships in eight languages and starts in English, so the English copy below is the one to submit. The Chinese copy is for a `zh-CN` listing; the manifest also declares `zh_CN`, `zh_TW`, `ja`, `ko`, `de`, `fr` and `es`, so Partner Center fills the name and description per language from the package.
+
+Language behaviour worth writing into a listing: the choice is stored outside the encrypted vault, so the lock screen follows the selected language before the vault is opened.
 
 ### Short description (132 characters or fewer)
 
@@ -48,6 +50,7 @@ Chinese:
 > - Migration from Google Authenticator, Aegis, 2FAS, andOTP and Bitwarden
 > - Encrypted backup export and restore, with entry-count verification on restore
 > - Clipboard cleared on a timer after copying
+> - Interface in eight languages, switchable in Settings
 >
 > The master password cannot be recovered. Export a backup immediately after first use, and keep each service's recovery codes.
 
@@ -69,6 +72,7 @@ Chinese:
 > - 从 Google Authenticator、Aegis、2FAS、andOTP、Bitwarden 迁移
 > - 加密备份导出与恢复，恢复时核对条数
 > - 复制后定时清空剪贴板
+> - 界面支持八种语言，设置里随时切换
 >
 > 主密码不可找回。首次使用后立即导出备份，并保存各服务的恢复码。
 
@@ -122,22 +126,30 @@ Privacy policy page: https://theme26.github.io/mercury-2fa/privacy.html — sour
 | Screenshot 2, import | `docs/store/shot-2-import.png` | 1280 × 800 PNG |
 | Screenshot 3, settings and backup | `docs/store/shot-3-settings.png` | 1280 × 800 PNG |
 | Screenshot 4, locked state | `docs/store/shot-4-lock.png` | 1280 × 800 PNG |
+| Same four, Chinese UI | `docs/store/shot-N-*.zh-CN.png` | 1280 × 800 PNG |
 | Small promo tile (optional) | `docs/store/promo-440x280.png` | 440 × 280 PNG |
 | In-extension icons | `public/icon/16.png` and 3 more | 16 / 32 / 48 / 128 |
 
 Regenerate with `npm run assets` (devDependency `sharp`; layout lives in `tools/make-assets.mjs`).
 
-Source images are `docs/live/*.png`, captured by `tools/shoot-store.mjs`, which loads the build in a real Edge instance (4× scale, no debug output). After a UI change the order is `npm run build:edge` → `npm run shots` → `npm run assets`. `npm run assets` also overwrites `docs/list.png`, `docs/scan.png`, `docs/settings.png` and `docs/lock.png`, which the README embeds.
+Source images are `docs/live/*.png` for English and `docs/live/zh-CN/*.png` for Chinese, captured by `tools/shoot-store.mjs`, which loads the build in a real Edge instance (4× scale, no debug output). The caption and the interface language have to match, so the two sets are shot separately:
 
-The screenshots show the current Simplified Chinese UI. Retake them before submitting an English listing.
+```
+npm run build:edge
+npm run shots              # English, writes docs/live/
+npm run shots -- zh-CN     # Chinese, writes docs/live/zh-CN/
+npm run assets             # both banner sets -> docs/store/
+```
+
+`npm run assets` also overwrites `docs/list.png`, `docs/scan.png`, `docs/settings.png` and `docs/lock.png`, which the README embeds. Adding a language means adding its label set to `LABELS` in `tools/shoot-store.mjs`, capturing that set, then adding its captions to `SHOTS` in `tools/make-assets.mjs`.
 
 ### 6.2 Install package
 
 | Item | Value |
 |---|---|
-| File | `.output/mercury-2fa-0.7.2-edge.zip` |
-| Size | 547 KB (1.33 MB unpacked) |
-| Structure | `manifest.json` at the archive root, 17 files, including the three license copies under `licenses/` |
+| File | `.output/mercury-2fa-0.8.0-edge.zip` |
+| Size | 561 KB (1.36 MB unpacked) |
+| Structure | `manifest.json` at the archive root, 25 files, including the eight `_locales` folders and the three license copies under `licenses/` |
 | Build | `npm run pack` (equivalent to `wxt build -b edge && wxt zip -b edge`) |
 
 `manifest.json` must sit at the archive root, not inside an extra folder, or Partner Center fails to parse it.
@@ -145,7 +157,7 @@ The screenshots show the current Simplified Chinese UI. Retake them before submi
 ## 7. Submission steps
 
 1. Open `https://partner.microsoft.com/dashboard/microsoftedge` and sign in with a Microsoft account. First-time visitors choose "Register for the Microsoft Edge program". Registration is free and needs no credit card.
-2. "Edge extensions" dashboard → New extension → upload `.output/mercury-2fa-0.7.2-edge.zip`. The system parses the manifest; continue once no red error appears.
+2. "Edge extensions" dashboard → New extension → upload `.output/mercury-2fa-0.8.0-edge.zip`. The system parses the manifest; continue once no red error appears.
 3. Properties
    - Category: Productivity
    - Privacy policy URL: https://theme26.github.io/mercury-2fa/privacy.html
@@ -177,9 +189,11 @@ English:
 > 4. "Settings" exposes auto-lock, clipboard clearing, password change and encrypted backup export.
 > 5. "Lock now" returns to the password screen; unlocking requires the same password.
 >
+> The interface starts in English. Settings → Language lists eight languages; the choice is stored outside the encrypted vault, so the lock screen switches too, before any password is entered.
+>
 > Note: codes are derived from the seed and the current time, so a device clock off by more than 30 s will produce codes no server accepts. The extension makes no network requests at all and works with networking disabled.
 
-Chinese (the UI is Chinese, so this set may be submitted instead):
+Chinese (the interface defaults to English, so switch it first under 设置 → 语言 if the reviewer reads Chinese):
 
 > 本扩展是离线的两步验证码生成器，不需要登录、不需要联网即可完成全部功能测试。
 >
@@ -209,12 +223,12 @@ Filing and content compliance fall outside this process.
 
 ## 10. Pre-submission checklist
 
-- [x] `npm test` — all 147 tests pass
+- [x] `npm test` — all 164 tests pass
 - [x] `npm run compile` — 0 errors
 - [x] `npm run build` and `npm run build:edge` both succeed
 - [x] `manifest.json` has no `host_permissions` and no `content_scripts`
 - [x] Icons 16 / 32 / 48 / 128 are packaged
-- [x] Four screenshots at 1280 × 800, logo at 300 × 300
+- [x] Four screenshots at 1280 × 800, logo at 300 × 300, plus the Chinese set
 - [x] ZIP root holds `manifest.json`
 - [x] Privacy policy hosted and reachable anonymously
 - [ ] Partner Center account registered

@@ -1,0 +1,8 @@
+{
+  "extName": {
+    "message": "Mercury 2FA"
+  },
+  "extDescription": {
+    "message": "오프라인 TOTP 코드. 네트워크 요청 없음, 계정 불필요, 사이트 권한 없음."
+  }
+}
