@@ -103,8 +103,8 @@
 | 项目 | 值 |
 |---|---|
 | 文件 | `.output/mercury-2fa-0.7.2-edge.zip` |
-| 大小 | 540 KB（解压后 1.31 MB） |
-| 结构 | `manifest.json` 在压缩包根目录，14 个文件 |
+| 大小 | 547 KB（解压后 1.33 MB） |
+| 结构 | `manifest.json` 在压缩包根目录，17 个文件，含 `licenses/` 三份许可证副本 |
 | 生成 | `npm run pack`（等价于 `wxt build -b edge && wxt zip -b edge`） |
 
 压缩包根目录必须是 `manifest.json`，不能多套一层文件夹，否则 Partner Center 解析失败。

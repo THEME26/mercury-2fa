@@ -14,8 +14,11 @@
     "compile": "tsc --noEmit",
     "postinstall": "wxt prepare",
     "assets": "node tools/make-assets.mjs",
-    "pack": "wxt build -b edge && wxt zip -b edge",
-    "shots": "node tools/shoot-store.mjs"
+    "pack": "npm run build:edge && wxt zip -b edge",
+    "shots": "node tools/shoot-store.mjs",
+    "prebuild": "node tools/sync-licenses.mjs",
+    "prebuild:edge": "node tools/sync-licenses.mjs",
+    "licenses": "node tools/sync-licenses.mjs"
   },
   "dependencies": {
     "hash-wasm": "^4.13.0",

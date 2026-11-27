@@ -1,0 +1,26 @@
+第三方组件与许可证
+
+本项目以 MIT 发布（见 LICENSE），运行时包含下列第三方组件。
+
+一、随扩展分发的库
+
+| 组件 | 版本 | 许可证 | 来源 |
+|---|---|---|---|
+| react | 19.3.1 | MIT | https://github.com/facebook/react |
+| react-dom | 19.3.1 | MIT | https://github.com/facebook/react |
+| hash-wasm | 4.13.0 | MIT | https://github.com/Daninet/hash-wasm |
+| zxing-wasm | 3.1.8 | MIT | https://github.com/Sec-ant/zxing-wasm |
+
+二、二维码解码的 WebAssembly
+
+zxing-wasm 包内 `zxing_reader.wasm` 由 zxing-cpp 编译，后者以 Apache License 2.0 发布。
+
+- 项目地址：https://github.com/zxing-cpp/zxing-cpp
+- 许可证全文：`LICENSES/Apache-2.0.txt`（副本随仓库分发）
+- 分发形式：未修改的二进制文件，随扩展包内 `assets/zxing_reader-*.wasm` 一起发布，不联网加载
+
+三、构建期依赖
+
+Vite、WXT、TypeScript、Vitest、sharp 及各自传递依赖仅用于构建与测试，不进入发布包，许可证见各自 `node_modules/<包名>/LICENSE`。
+
+MIT 许可证全文见仓库根目录 LICENSE 文件，Apache License 2.0 全文见 `LICENSES/Apache-2.0.txt`。
