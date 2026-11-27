@@ -2,7 +2,7 @@
 
 离线的 2FA 验证码扩展，支持 Chrome 与 Edge。不联网、不注册账号、不上云。
 
-当前版本 **v0.7.0**：扫码导入、共用种子提醒、DEK 只在 offscreen 进程内存里。安装时不申请任何站点权限。
+当前版本 **v0.7.1**：扫码导入、共用种子提醒、DEK 只在 offscreen 进程内存里，存储读写经 service worker 代理。安装时不申请任何站点权限。
 
 | 列表 | 扫码导入 |
 |---|---|
@@ -26,15 +26,17 @@
 | 提醒 | 图标角标：超过 30 天没导出备份时出现 `!`；同一组种子挂在多个账号上时列表标「共用种子」 |
 | 自检 | 内置四项检查：往返解密、错误密码拒绝、密文篡改检测、派生耗时 |
 
-## 三个上下文，各管一件事
+## 四个上下文，各管一件事
 
 MV3 的 service worker 会被随时回收，popup 一关就消失，两者都不适合放密钥。唯一的常驻内存态上下文是 offscreen 文档，它没有界面、不进用户视野，正好用来装密钥。
 
 ```
-popup（界面）  --命令-->  service worker（路由）  --命令-->  offscreen（解密、取码）
-                        ↑ 只管创建/关闭文档、闹钟、角标          持有 DEK，只在内存变量里
+popup（界面）  --命令-->  service worker（路由 + 存储）  --命令-->  offscreen（解密、取码）
+                        ↑ 创建/关闭文档、闹钟、角标、读写存储            持有 DEK，只在内存变量里
+                        └──────────  store 请求  ←─────────────────────┘
 ```
 
+- **offscreen 不碰 `chrome.storage`。** 实测 Edge 158 的 offscreen 文档里，`chrome` 只有 `loadTimes`、`csi`、`runtime` 三个成员，`chrome.storage` 是 `undefined`。任何在模块顶层取 `browser.storage.local` 的代码都会当场抛异常，监听器挂不上，于是 popup 只看到「加密进程未就绪」。现在 offscreen 的读写全部经 `lib/store-bridge.ts` 回到 service worker 执行，桥只接受 `sender.url` 以 `offscreen.html` 结尾的请求。
 - **popup 里没有解密代码路径。** 打包产物中 popup 分块对 `argon2id`、`wrappedDek`、`AES-GCM` 的匹配数都是 0，这些只出现在 offscreen 分块。这是可以对产物 `grep` 验证的事实，不是设计承诺。
 - **命令走白名单。** 每条消息按 `op` 重建对象后才转发，多余字段丢弃；关掉 offscreen 文档就等于把 DEK 扔掉，下次打开必然要求重新输密码。
 - **返回值过闸门。** 出站前扫一遍字段名，出现 `secret` 或 `secrets` 直接丢包。添加条目只回 `{ id }`，因为条目记录本身带种子。
@@ -98,10 +100,12 @@ popup（界面）  --命令-->  service worker（路由）  --命令-->  offscre
 
 | 项目 | 结果 |
 |---|---|
-| 单元测试 | **139 项**全通过 |
+| 单元测试 | **146 项**全通过 |
 | RFC 4226 十组 HOTP 向量 | 全部匹配 |
 | RFC 6238 六时点 × SHA1/256/512 | 18 组全部匹配 |
 | 命令白名单 | 未知 op / target 不符 / 缺字段 / 超长文本 / 多余字段注入，逐项拒绝 |
+| 存储桥 | 只认 `target=store` 且字段齐全的请求；非 offscreen 来源被拒；后台无应答报 `no-handler`，不静默当空值 |
+| offscreen 无 storage 场景 | 两个存储区都换成代理后，建库、加条目、取码、销毁重建后解锁全部通过 |
 | 出站闸门 | 构造带 `secret` 的返回值被拦下；正常条目视图与导出文本放行 |
 | 进程边界 | 建库后 `storage.session` 里没有任何 dek 键；换一个宿主即回到锁定态；锁定后取码报 `locked` |
 | 命令层端到端 | 建库 → 添加 → 取码 → 导出 → 另一实例恢复 → 改密码后旧密码失效，全链路走真实服务 |
@@ -110,13 +114,15 @@ popup（界面）  --命令-->  service worker（路由）  --命令-->  offscre
 | 浏览器端到端 | 加载真实构建产物：建库、加三条、取码，点「填入 GitHub」后 shadow DOM 输入框得到同一串码 |
 | 浏览器扫码 | 真实产物 + 打包的 wasm：点「扫描当前页二维码」，识别出 otpauth 串、回填输入框、预览「GitHub alice@example.com TOTP·6位」 |
 | 重载即锁 | 同一个配置目录重开页面，宿主重建，界面回到「保险库已锁定」 |
+| Edge 158 实机全链路 | 未打包加载：设主密码 → 建库 → 加 GitHub → 界面显示 `948 544`，与本地 RFC 6238 计算一致；offscreen 内 `chrome.storage` 确实为 `undefined`，链路照常跑通 |
+| 剪贴板清空路径 | offscreen 内 `navigator.clipboard.writeText` 必报 `Document is not focused`，`document.execCommand('copy')` 返回 `true`，清空走后者 |
 | 分块隔离 | popup 分块中 `argon2id` / `wrappedDek` / `AES-GCM` 匹配数均为 0 |
 | 类型检查 | `tsc --noEmit` 0 错误 |
-| 产物 | 1.30 MB（含 946 KB wasm），权限 `storage`、`idle`、`clipboardWrite`、`activeTab`、`scripting`、`alarms`、`offscreen`，无 `host_permissions` |
+| 产物 | 1.31 MB（含 946 KB wasm），权限 `storage`、`idle`、`clipboardWrite`、`activeTab`、`scripting`、`alarms`、`offscreen`，无 `host_permissions` |
 
 没验过的两条，必须在真机确认：
 
-- `clipboardWrite` 的实际清空效果 —— 预览页没有扩展权限，测出来只能是拒绝
+- 系统剪贴板确实被覆写成空串 —— 只验证到 `execCommand('copy')` 返回 `true`，读回剪贴板内容要另一个应用配合
 - 真实站点上的填充命中率 —— 页面结构与动态渲染时机复现不出来
 
 ## 未实现（明确列出）
@@ -168,7 +174,7 @@ lib/crypto-host.ts       加密边界；唯一实现把 DEK 放在内存变量�
 lib/browser-store.ts     storage.local / storage.session 适配
 lib/importers.ts         GA protobuf、各家 JSON、otpauth 串
 lib/totp.ts …            取码内核
-tests/                   139 项，含二维码样本与 jsdom 填充用例
+tests/                   146 项，含二维码样本与 jsdom 填充用例
 ```
 
 ## 数据格式
@@ -192,7 +198,7 @@ tests/                   139 项，含二维码样本与 jsdom 填充用例
 
 ```bash
 npm install
-npm test              # 139 项
+npm test              # 146 项
 npm run compile       # tsc --noEmit
 npm run build         # .output/chrome-mv3
 npm run build:edge    # .output/edge-mv3
@@ -201,12 +207,28 @@ npm run zip           # 上架用压缩包
 
 ## 加载与绑定 GitHub
 
-1. `chrome://extensions` → 开发者模式 → 加载已解压 → `.output\chrome-mv3`
-2. 首次打开设主密码（建议中档），记录到密码管理器
-3. GitHub → Settings → Password and authentication → Enable 2FA → Authenticator app
-4. GitHub 的二维码页面点扩展图标 → 导入 → 「扫描当前页二维码」，识别后点「导入 1 条」。也可以手点二维码下方的 **enter this text code**，把 32 位 setup key 粘进 ＋ 的手填表单
-5. 在 GitHub 的验证页点扩展图标，底部出现「填入 GitHub」，点一下自动写入
-6. **立即到设置里导出加密备份**，并把 GitHub 的 recovery codes 存好
+解压加载直接引用构建目录，`.output\chrome-mv3` 与 `.output\edge-mv3` 须原地保留，目录删除或改名后扩展立即失效。重新构建后回到扩展页点该卡片的「重新加载」。
+
+### Edge
+
+1. 地址栏输入 `edge://extensions`，左侧开启「开发人员模式」
+2. 点「加载解压缩的扩展」，选中 `D:\2FA_THEME26\.output\edge-mv3`（选中目录本身）
+3. 扩展列表内「Mercury 2FA」→「详细信息」→ 开启「在工具栏中显示」
+4. `Alt+Shift+M` 与点击图标等价；扩展 ID 为 `phaaiimkjbieajjhclcdmbofgnmfhech`，与 Chrome 一致
+
+### Chrome
+
+1. 地址栏输入 `chrome://extensions`，右上角开启「开发者模式」
+2. 点「加载已解压的扩展程序」，选中 `D:\2FA_THEME26\.output\chrome-mv3`
+3. 固定图标与快捷键同 Edge
+
+### 绑定 GitHub
+
+1. 首次打开设主密码（建议中档），记录到密码管理器
+2. GitHub → Settings → Password and authentication → Enable 2FA → Authenticator app
+3. GitHub 的二维码页面点扩展图标 → 导入 → 「扫描当前页二维码」，识别后点「导入 1 条」。也可以手点二维码下方的 **enter this text code**，把 32 位 setup key 粘进 ＋ 的手填表单
+4. 在 GitHub 的验证页点扩展图标，底部出现「填入 GitHub」，点一下自动写入
+5. **立即到设置里导出加密备份**，并把 GitHub 的 recovery codes 存好
 
 ## 下一步
 

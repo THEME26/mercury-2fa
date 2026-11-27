@@ -7,7 +7,7 @@
 | 字段 | 值 |
 |---|---|
 | 名称 | Mercury 2FA |
-| 版本 | 0.7.0 |
+| 版本 | 0.7.1 |
 | 类别 | Chrome：Productivity / Tools；Edge：Productivity |
 | 语言 | 中文（简体） |
 | 单一用途 | 在本机生成并填写两步验证的 6 位验证码 |

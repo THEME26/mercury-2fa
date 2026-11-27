@@ -1,12 +1,14 @@
 import { browser } from 'wxt/browser';
-import { localStore } from '../lib/browser-store';
+import { localStore, sessionStore } from '../lib/browser-store';
 import {
   errorReply,
   isReply,
   normalizeCommand,
+  okReply,
   type VaultCommand,
   type VaultReply,
 } from '../lib/protocol';
+import { parseStoreRequest } from '../lib/store-bridge';
 import { CLIPBOARD_ALARM } from '../lib/clipboard';
 import type { Settings } from '../lib/types';
 
@@ -89,6 +91,36 @@ export default defineBackground(() => {
     await browser.action.setBadgeBackgroundColor({ color: BADGE_COLOR });
     await browser.action.setBadgeText({ text });
   }
+
+  /**
+   * offscreen 的存储代理。offscreen 不保证有 chrome.storage，保险库读写都走这条通道。
+   * 只接受 offscreen.html 发来的请求，popup 不能借这里改写密文。
+   */
+  browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    if (sender.id !== browser.runtime.id) return false;
+    if (!sender.url || !sender.url.endsWith(`/${OFFSCREEN_PATH}`)) return false;
+    const request = parseStoreRequest(message);
+    if (request === null) return false;
+
+    void (async () => {
+      try {
+        const area = request.kind === 'session' ? sessionStore : localStore;
+        if (request.op === 'get') {
+          sendResponse(okReply(await area.get(request.key)));
+          return;
+        }
+        if (request.op === 'set') {
+          await area.set(request.key, request.value);
+        } else {
+          await area.remove(request.key);
+        }
+        sendResponse(okReply(true));
+      } catch (cause) {
+        sendResponse(errorReply(cause));
+      }
+    })();
+    return true;
+  });
 
   browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (sender.id !== browser.runtime.id) return false;
