@@ -611,3 +611,42 @@ button {
   color: var(--muted);
   font-size: 10px;
 }
+
+.row-fill {
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: none;
+  border-radius: 4px;
+  background: none;
+  color: var(--accent);
+  opacity: 0.55;
+  font-size: 13px;
+  line-height: 1;
+  flex-shrink: 0;
+  cursor: pointer;
+  transition: opacity 0.15s, color 0.15s;
+}
+
+.row:hover .row-fill {
+  opacity: 1;
+}
+
+.row-fill:hover {
+  color: var(--accent);
+}
+
+.row-fill:disabled {
+  opacity: 0.25;
+  cursor: default;
+}
+
+.link.strong {
+  color: var(--accent);
+  font-weight: 500;
+}
+
+.link:disabled {
+  color: var(--muted);
+  cursor: default;
+}

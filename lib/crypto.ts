@@ -1,4 +1,5 @@
 import { argon2id } from 'hash-wasm';
+import { BackupError, VaultError } from './errors';
 
 /** Argon2id 参数，m 的单位是 KiB，与 argon2 参考实现的 m_cost 一致 */
 export interface Argon2Params {
@@ -27,6 +28,8 @@ export interface VaultV2 {
   kdf: Argon2Params;
   wrappedDek: Sealed;
   payload: Sealed;
+  /** 明文条目总数，只用于恢复时核对完整性，不泄露内容 */
+  entryCount?: number;
   createdAt: number;
   updatedAt: number;
 }
@@ -96,6 +99,7 @@ export function makeKdfParams(tier: KdfTier): Argon2Params {
 }
 
 export function isWrongPassword(error: unknown): boolean {
+  if (error instanceof VaultError && error.code === 'wrong-password') return true;
   const name = (error as { name?: string } | null)?.name;
   return name === 'OperationError';
 }
@@ -133,6 +137,7 @@ export async function createVault(
     kdf,
     wrappedDek: await wrapDek(kek, dek),
     payload: await aesEncrypt(dek, new TextEncoder().encode(JSON.stringify(entries))),
+    entryCount: Array.isArray(entries) ? entries.length : 0,
     createdAt: now,
     updatedAt: now,
   };
@@ -146,9 +151,25 @@ export interface OpenedVault {
 
 export async function openVault(vault: VaultV2, password: string): Promise<OpenedVault> {
   const kek = await deriveKek(password, vault.kdf);
-  const dek = await unwrapDek(kek, vault.wrappedDek);
-  const plain = await aesDecrypt(dek, vault.payload);
-  return { dek, entries: JSON.parse(new TextDecoder().decode(plain)) };
+  let dek: Uint8Array;
+  try {
+    dek = await unwrapDek(kek, vault.wrappedDek);
+  } catch {
+    /** DEK 解包失败只可能是 KEK 不对，即密码错 */
+    throw new VaultError('wrong-password', '主密码不正确');
+  }
+  /** 走到这里密码是对的，再解密失败说明库体被改过 */
+  let plain: Uint8Array;
+  try {
+    plain = await aesDecrypt(dek, vault.payload);
+  } catch {
+    throw new BackupError('structure', '数据无法解密，内容可能已损坏');
+  }
+  try {
+    return { dek, entries: JSON.parse(new TextDecoder().decode(plain)) };
+  } catch {
+    throw new BackupError('structure', '库体内容无法解析，文件可能已损坏');
+  }
 }
 
 export async function sealEntries(vault: VaultV2, dek: Uint8Array, entries: unknown): Promise<VaultV2> {
@@ -183,23 +204,56 @@ export interface BackupFile {
   format: 'mercury-2fa-backup';
   version: 2;
   exportedAt: string;
+  /** 明文条目总数，与 vault.entryCount 一致，恢复后核对 */
+  entryCount: number;
   vault: VaultV2;
 }
 
+export const BACKUP_FORMAT = 'mercury-2fa-backup';
+export const BACKUP_VERSION = 2;
+
 export function makeBackup(vault: VaultV2): BackupFile {
-  return { format: 'mercury-2fa-backup', version: 2, exportedAt: new Date().toISOString(), vault };
+  return {
+    format: BACKUP_FORMAT,
+    version: BACKUP_VERSION,
+    exportedAt: new Date().toISOString(),
+    entryCount: vault.entryCount ?? 0,
+    vault,
+  };
 }
 
+/** 只认自己的命名空间与版本，不兼容外部格式 */
 export function parseBackup(text: string): VaultV2 {
   let parsed: unknown;
   try {
     parsed = JSON.parse(text);
   } catch {
-    throw new Error('备份文件不是合法 JSON');
+    throw new BackupError('json', '备份文件已损坏，无法解析');
   }
   const file = parsed as Partial<BackupFile>;
-  if (file?.format !== 'mercury-2fa-backup' || file.vault?.schemaVersion !== 2) {
-    throw new Error('备份文件格式不符');
+  if (!file || typeof file !== 'object' || file.format !== BACKUP_FORMAT) {
+    throw new BackupError('magic', '这不是 Mercury 2FA 的备份文件');
+  }
+  if (typeof file.version !== 'number') {
+    throw new BackupError('version', '备份文件缺少版本信息');
+  }
+  if (file.version > BACKUP_VERSION) {
+    throw new BackupError('version', '备份文件来自更新版本的扩展，请先升级后再恢复');
+  }
+  if (file.vault?.schemaVersion !== 2) {
+    throw new BackupError('version', '备份文件的数据版本不受支持');
+  }
+  if (typeof file.vault.payload?.data !== 'string' || typeof file.vault.wrappedDek?.data !== 'string') {
+    throw new BackupError('structure', '备份文件内容不完整，可能被截断');
+  }
+  /** AES-GCM 的认证标签固定 16 字节，密文短于此必然是截断 */
+  try {
+    if (fromBase64(file.vault.payload.data).length < 16 || fromBase64(file.vault.wrappedDek.data).length < 16) {
+      throw new BackupError('structure', '备份文件内容不完整，密文长度异常');
+    }
+  } catch (error) {
+    if (error instanceof BackupError) throw error;
+    throw new BackupError('structure', '备份文件中的密文不是合法 base64');
   }
   return file.vault;
 }

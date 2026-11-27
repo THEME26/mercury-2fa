@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { toErrorMessage } from '../../lib/errors';
+import { fillActivePage, getActivePage, type ActivePage } from '../../lib/fill/inject';
+import { bestMatch } from '../../lib/fill/site-match';
 import { vaultService } from '../../lib/service-instance';
 import type { EntryView, VaultStatus } from '../../lib/types';
 import AddForm from './AddForm';
@@ -27,6 +29,8 @@ export default function App() {
   const [editing, setEditing] = useState(false);
   const [pendingDelete, setPendingDelete] = useState<string | null>(null);
   const [query, setQuery] = useState('');
+  const [page, setPage] = useState<ActivePage | null>(null);
+  const [filling, setFilling] = useState<string | null>(null);
 
   const flash = useCallback((message: string) => {
     setToast(message);
@@ -50,6 +54,7 @@ export default function App() {
 
   useEffect(() => {
     void refresh();
+    void getActivePage().then(setPage);
   }, [refresh]);
 
   useEffect(() => {
@@ -91,6 +96,25 @@ export default function App() {
   const togglePin = async (id: string) => {
     await vaultService.togglePin(id);
     await refresh();
+  };
+
+  /** 填入前重新取码：列表里的 code 可能刚跨过 30 秒窗口 */
+  const fill = async (view: EntryView) => {
+    setFilling(view.id);
+    try {
+      const fresh = (await vaultService.listCodes()).find((entry) => entry.id === view.id) ?? view;
+      const report = await fillActivePage(fresh.code, fresh.digits, fresh.issuer);
+      if (report.ok && fresh.type === 'hotp') {
+        await vaultService.bumpCounter(fresh.id);
+        await refresh();
+      }
+      flash(report.message);
+      if (report.ok) window.setTimeout(() => window.close(), 700);
+    } catch (cause) {
+      flash(toErrorMessage(cause));
+    } finally {
+      setFilling(null);
+    }
   };
 
   const remove = async (id: string) => {
@@ -171,6 +195,9 @@ export default function App() {
     return `${view.issuer} ${view.account}`.toLowerCase().includes(query.trim().toLowerCase());
   });
 
+  const injectable = page !== null && page.host !== '';
+  const autoTarget = injectable ? bestMatch(page.host, views) : null;
+
   return (
     <div className="shell">
       <header className="bar">
@@ -247,6 +274,19 @@ export default function App() {
               <div className={expiring ? 'row-code expiring' : 'row-code'}>
                 {remainingMs > 0 || view.expiresAt === 0 ? groupCode(view.code) : '· · ·  · · ·'}
               </div>
+              {injectable && (
+                <button
+                  className="row-fill"
+                  title="填入当前页"
+                  disabled={filling === view.id}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    void fill(view);
+                  }}
+                >
+                  {filling === view.id ? '·' : '↵'}
+                </button>
+              )}
               {editing && (
                 <button
                   className={pendingDelete === view.id ? 'remove confirm' : 'remove'}
@@ -270,6 +310,14 @@ export default function App() {
       </main>
 
       <footer className="foot">
+        {autoTarget && (
+          <>
+            <button className="link strong" disabled={filling !== null} onClick={() => void fill(autoTarget)}>
+              填入 {autoTarget.issuer || '当前站点'}
+            </button>
+            <span className="foot-sep">·</span>
+          </>
+        )}
         <button className="link" onClick={() => setScreen('import')}>
           导入
         </button>

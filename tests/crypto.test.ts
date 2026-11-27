@@ -118,7 +118,7 @@ describe('备份文件', () => {
   });
 
   it('拒绝非法输入', () => {
-    expect(() => parseBackup('not json')).toThrow(/JSON/);
-    expect(() => parseBackup(JSON.stringify({ format: 'other' }))).toThrow(/格式/);
+    expect(() => parseBackup('not json')).toThrow(/损坏/);
+    expect(() => parseBackup(JSON.stringify({ format: 'other' }))).toThrow(/不是 Mercury 2FA/);
   });
 });

@@ -11,7 +11,7 @@ import {
   type VaultV2,
 } from './crypto';
 import type { CryptoHost } from './crypto-host';
-import { VaultError } from './errors';
+import { BackupError, VaultError } from './errors';
 import { hotp } from './hotp';
 import { parseOtpAuthUri } from './otpauth';
 import type { KeyValueStore } from './storage';
@@ -71,8 +71,9 @@ export class VaultService {
     return this.local.get<VaultV2>(VAULT_KEY);
   }
 
-  private async saveVault(vault: VaultV2): Promise<void> {
-    await this.local.set(VAULT_KEY, vault);
+  private async saveVault(vault: VaultV2, entryCount?: number): Promise<void> {
+    const next = entryCount === undefined ? vault : { ...vault, entryCount };
+    await this.local.set(VAULT_KEY, next);
   }
 
   private async touch(): Promise<void> {
@@ -162,7 +163,7 @@ export class VaultService {
     const entries = Array.isArray(legacy?.entries) ? legacy.entries : [];
 
     const vault = await this.host.create(password, entries, tier);
-    await this.saveVault(vault);
+    await this.saveVault(vault, entries.length);
     await this.local.remove(LEGACY_KEY);
     await this.local.remove('ui.devAck.v1');
     await this.setSettings({ kdfTier: tier });
@@ -261,7 +262,7 @@ export class VaultService {
     if (duplicated) throw new VaultError('invalid', '这个账号已经在库里了');
 
     const next = sortEntries([...entries, entry]);
-    await this.saveVault({ ...vault, payload: await this.host.sealEntries(next) });
+    await this.saveVault({ ...vault, payload: await this.host.sealEntries(next) }, next.length);
     return entry;
   }
 
@@ -285,7 +286,7 @@ export class VaultService {
   async remove(id: string): Promise<void> {
     const { vault, entries } = await this.ensureUnlocked();
     const next = entries.filter((entry) => entry.id !== id);
-    await this.saveVault({ ...vault, payload: await this.host.sealEntries(next) });
+    await this.saveVault({ ...vault, payload: await this.host.sealEntries(next) }, next.length);
   }
 
   async togglePin(id: string): Promise<boolean> {
@@ -296,7 +297,7 @@ export class VaultService {
       pinned = !entry.pinned;
       return { ...entry, pinned };
     });
-    await this.saveVault({ ...vault, payload: await this.host.sealEntries(next) });
+    await this.saveVault({ ...vault, payload: await this.host.sealEntries(next) }, next.length);
     return pinned;
   }
 
@@ -309,7 +310,7 @@ export class VaultService {
       counter = (entry.counter ?? 0) + 1;
       return { ...entry, counter };
     });
-    await this.saveVault({ ...vault, payload: await this.host.sealEntries(next) });
+    await this.saveVault({ ...vault, payload: await this.host.sealEntries(next) }, next.length);
     return counter;
   }
 
@@ -327,8 +328,17 @@ export class VaultService {
       const opened = await openVault(incoming, password);
       incomingEntries = Array.isArray(opened.entries) ? (opened.entries as EntryRecord[]) : [];
     } catch (error) {
+      /** BackupError 先说：密文被改过时 AES-GCM 也报 OperationError，不能当成密码错 */
+      if (error instanceof BackupError) throw error;
       if (isWrongPassword(error)) throw new VaultError('wrong-password', '备份密码不正确');
-      throw error;
+      throw new BackupError('structure', '备份内容无法解密，文件可能已损坏');
+    }
+    /** 文件里带了明文条数就核对，解出的数量对不上说明内容不全 */
+    if (typeof incoming.entryCount === 'number' && incoming.entryCount !== incomingEntries.length) {
+      throw new BackupError(
+        'structure',
+        `备份内容不完整：声明 ${incoming.entryCount} 条，实际解出 ${incomingEntries.length} 条`,
+      );
     }
 
     const { vault, entries } = await this.ensureUnlocked();
@@ -348,7 +358,7 @@ export class VaultService {
     }
 
     if (imported > 0) {
-      await this.saveVault({ ...vault, payload: await this.host.sealEntries(sortEntries(entries)) });
+      await this.saveVault({ ...vault, payload: await this.host.sealEntries(sortEntries(entries)) }, entries.length);
     }
     return { imported, skipped };
   }
@@ -366,7 +376,7 @@ export class VaultService {
       throw error;
     }
     const next = await rewrapVault(vault, dek, newPassword, tier);
-    await this.saveVault(next);
+    await this.saveVault(next, vault.entryCount ?? 0);
     if (tier) await this.setSettings({ kdfTier: tier });
     await this.touch();
   }
