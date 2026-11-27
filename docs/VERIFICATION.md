@@ -38,3 +38,7 @@ Two claims need a second machine or a real login page:
 
 - **The system clipboard is actually emptied.** Only the `execCommand('copy')` return value of `true` was observed. Reading the clipboard back needs a second application.
 - **Fill hit rate on real sites.** Page structure and render timing cannot be reproduced locally. The plan is GitHub, Google, AWS and Cloudflare logins plus ten password-only pages with no mis-fill.
+
+One step is verified only by substitution:
+
+- **The browser's own permission bubble.** `chrome.permissions.request` cannot be clicked by a script, so the grant was exercised by declaring `clipboardWrite` as a required permission instead. The code after the grant, and the clearing it enables, were measured that way. The bubble itself has not been clicked.
