@@ -1,6 +1,6 @@
 {
   "name": "mercury-2fa",
-  "version": "0.7.1",
+  "version": "0.7.2",
   "private": true,
   "type": "module",
   "description": "离线 TOTP 验证码扩展，支持 Chrome 与 Edge",
@@ -12,7 +12,10 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "compile": "tsc --noEmit",
-    "postinstall": "wxt prepare"
+    "postinstall": "wxt prepare",
+    "assets": "node tools/make-assets.mjs",
+    "pack": "wxt build -b edge && wxt zip -b edge",
+    "shots": "node tools/shoot-store.mjs"
   },
   "dependencies": {
     "hash-wasm": "^4.13.0",
@@ -26,6 +29,7 @@
     "@types/react-dom": "^19.3.0",
     "@wxt-dev/module-react": "^1.2.2",
     "jsdom": "^31.0.1",
+    "sharp": "^0.35.5",
     "typescript": "^7.0.2",
     "vitest": "^5.1.2",
     "wxt": "^0.21.5"

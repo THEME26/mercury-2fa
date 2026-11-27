@@ -37,7 +37,19 @@ export default function LockScreen({ status, onDone }: Props) {
 
   return (
     <div className="lock">
-      <div className="lock-mark" />
+      <div className="lock-mark" aria-hidden="true">
+        <svg viewBox="0 0 34 34" width="34" height="34">
+          <defs>
+            <linearGradient id="lm" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0" stopColor="#3b82f6" />
+              <stop offset="1" stopColor="#1d4ed8" />
+            </linearGradient>
+          </defs>
+          <rect width="34" height="34" rx="7.5" fill="url(#lm)" />
+          <path d="M 21.76 8.76 A 9.52 9.52 0 1 1 12.24 8.76" fill="none" stroke="#fff" strokeWidth="3.4" strokeLinecap="round" />
+          <circle cx="17" cy="17" r="2.04" fill="#fff" />
+        </svg>
+      </div>
       <div className="lock-title">{creating ? '设置主密码' : '保险库已锁定'}</div>
       <p className="lock-sub">
         {creating

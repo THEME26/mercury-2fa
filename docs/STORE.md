@@ -1,37 +1,39 @@
-# 上架材料
+# Edge 上架材料与提交流程
 
-两个商店要的东西不一样，内容大体重合。这份文件按「复制即可粘贴」的方式整理，改代码时回来同步。
+版本 0.7.2。本文件按「逐项复制进表单」组织，代码变更后回来同步。
 
 ## 一、基本信息
 
 | 字段 | 值 |
 |---|---|
-| 名称 | Mercury 2FA |
-| 版本 | 0.7.1 |
-| 类别 | Chrome：Productivity / Tools；Edge：Productivity |
+| 名称（取自 manifest，不可改） | Mercury 2FA |
+| 版本 | 0.7.2 |
+| 类别 | Productivity |
 | 语言 | 中文（简体） |
-| 单一用途 | 在本机生成并填写两步验证的 6 位验证码 |
+| 单一用途 | 在本机生成并填写两步验证验证码 |
 
-单一用途的一句话陈述（商店要求，必须窄）：
+单一用途陈述（商店要求，须窄）：
 
 > 生成基于时间的一次性验证码（TOTP）并填入登录页面，数据只存本机。
 
-## 二、描述文案
+## 二、商店文案
 
-短描述（132 字符内）：
+简短描述（132 字符内）：
 
 > 离线的两步验证码管理器。不联网、不注册、零站点权限，验证码本地生成，可一键填入登录页。
 
-长描述：
+详细描述（250–10000 字符）：
 
-> Mercury 2FA 只做一件事：把两步验证的 6 位数字算出来，替你填进登录框。
+> Mercury 2FA 只做一件事：把两步验证的 6 位数字算出来，填入登录框。
 >
 > 与其他验证码扩展的区别有三点：
+>
 > 1. 不联网。整个扩展没有一条向外部主机发起的请求，装完断网也能用。
-> 2. 不申请站点权限。只有你点开图标的那一刻，浏览器才把当前标签页的写入权临时交出来。
+> 2. 不申请站点权限。只有点开图标的那一刻，浏览器才把当前标签页的写入权临时交出来。
 > 3. 密钥不进界面进程。解密与取码在独立的后台页面完成，弹窗只拿到 6 位数字。
 >
 > 功能：
+>
 > - TOTP / HOTP / Steam 三种验证码
 > - 主密码 + Argon2id 派生 + AES-GCM-256 加密，空闲自动锁定
 > - 扫码导入：截图当前页，本地识别二维码
@@ -39,11 +41,11 @@
 > - 加密备份导出与恢复，恢复时核对条数
 > - 复制后定时清空剪贴板
 >
-> 主密码不可找回。请务必导出备份并保存恢复码。
+> 主密码不可找回。首次使用后立即导出备份，并保存各服务的恢复码。
+
+搜索词（7 个以内，每个 30 字符以内）：`2FA`、`TOTP`、`authenticator`、`验证码`、`两步验证`、`离线`、`OTP`
 
 ## 三、权限理由（逐条填）
-
-Chrome Web Store 会逐条问。理由要具体到「为什么这个功能需要它」，不要写「提升体验」。
 
 | 权限 | 提交文本 |
 |---|---|
@@ -53,55 +55,139 @@ Chrome Web Store 会逐条问。理由要具体到「为什么这个功能需要
 | `activeTab` | 仅在用户点击扩展图标后获得当前标签页的临时访问权，用于把验证码写入页面的验证码输入框。不使用时不产生任何访问。 |
 | `scripting` | 在 activeTab 授权范围内执行一段自包含函数，把验证码写入输入框并派发 input 事件。该函数不读取页面内容。 |
 | `alarms` | 两个定时任务：剪贴板到期清空、备份健康度检查（超过 30 天未导出时提示）。 |
-| `offscreen` | 在不可见的后台文档中完成 Argon2id 派生、解密与取码，使界面进程永远接触不到种子与密钥。 |
+| `offscreen` | 在不可见的后台文档中完成 Argon2id 派生、解密与取码，使界面进程接触不到种子与密钥。 |
 
-站点权限：无。`host_permissions` 与 `content_scripts` 都不申请。
+站点权限：无。`host_permissions` 与 `content_scripts` 均未申请。
 
 ## 四、远程代码声明
 
-商店表单会问「是否使用远程代码」。答案：**否**。
+表单问题「是否使用远程代码」的答案：否。
 
 - 无 CDN 依赖，无 `eval`，无动态 `new Function`
-- WebAssembly 随扩展分发（`assets/zxing_reader-*.wasm`），`locateFile` 指向扩展内资产，不从网络加载
-- 产物中若出现 `jsdelivr` 字样，来自 zxing-wasm 内置的兜底分支，本项目每次初始化都显式覆盖 `locateFile`，该分支不可达。可对照 `lib/qr-scan.ts` 的 `assetUrl()` 与产物里的 `locateFile:Be` 核查
+- WebAssembly 随扩展分发（`assets/zxing_reader-*.wasm`，946 KB），`locateFile` 指向扩展内资产，不从网络加载
+- 产物中若出现 `jsdelivr` 字样，来自 zxing-wasm 内置的兜底分支，本项目每次初始化都显式覆盖 `locateFile`，该分支不可达。核查方式：对照 `lib/qr-scan.ts` 的 `assetUrl()` 与产物里的 `locateFile`
 
-## 五、数据使用披露（Data usage）
+## 五、数据使用披露
 
 | 问题 | 答案 |
 |---|---|
 | 是否收集个人身份信息 | 否 |
-| 是否收集健康、财务、认证信息 | 否（验证码种子存在本机且加密，不上传） |
+| 是否收集健康、财务、认证信息 | 否（种子存本机且加密，不上传） |
 | 是否收集位置、浏览历史、用户活动 | 否 |
 | 是否向第三方出售或传输数据 | 否 |
 | 是否用于广告或信用评估 | 否 |
 | 是否使用远程代码 | 否 |
 
-隐私政策链接：仓库内 `docs/PRIVACY.md`，发布前需托管为可公开访问的页面（GitHub Pages 或仓库 raw 链接均可）。
+隐私政策页面：`docs/privacy.html`，托管后把公开地址填入 Partner Center 的 Privacy policy URL。
 
-## 六、截图与素材
+## 六、素材
 
-| 素材 | 文件 | 说明 |
+### 1. 商店素材（已生成，可直接上传）
+
+| 用途 | 文件 | 规格 |
 |---|---|---|
-| 列表 | `docs/list.png` | 三条记录，其中两条标「共用种子」 |
-| 扫码导入 | `docs/scan.png` | 识别结果与预览 |
-| 设置 | `docs/settings.png` | 自动锁定、剪贴板、备份 |
-| 锁屏 | `docs/lock.png` | 解锁界面 |
+| 商店 Logo（必填） | `docs/store/logo-300.png` | 300 × 300 PNG |
+| 截图 1 列表 | `docs/store/shot-1-codes.png` | 1280 × 800 PNG |
+| 截图 2 导入 | `docs/store/shot-2-import.png` | 1280 × 800 PNG |
+| 截图 3 设置与备份 | `docs/store/shot-3-settings.png` | 1280 × 800 PNG |
+| 截图 4 锁定态 | `docs/store/shot-4-lock.png` | 1280 × 800 PNG |
+| 小推广图（可选） | `docs/store/promo-440x280.png` | 440 × 280 PNG |
+| 扩展内图标 | `public/icon/16.png` 等 4 个 | 16 / 32 / 48 / 128 |
 
-商店要求 1280×800 或 640×400 的截图，当前是 380 宽的弹窗原图，提交前需重排到要求尺寸。图标 128×128 尚未制作。
+重新生成：`npm run assets`（依赖 devDependency `sharp`；版式定义在 `tools/make-assets.mjs`）。
 
-## 七、提交前检查
+源图为 `docs/live/*.png`，由 `tools/shoot-store.mjs` 在真实 Edge 里加载构建产物后截取（4 倍图，无调试输出）。界面改动后的顺序：`npm run build:edge` → `npm run shots` → `npm run assets`。`npm run assets` 同时把干净版本覆盖到 `docs/list.png`、`docs/scan.png`、`docs/settings.png`、`docs/lock.png`，README 内嵌图随之更新。
 
-- [ ] `npm test` 全绿，`npm run compile` 无错误
-- [ ] `npm run build` 与 `npm run build:edge` 均成功
-- [ ] `manifest.json` 无 `host_permissions`，无 `content_scripts`
-- [ ] 隐私政策已托管，链接可访问
-- [ ] 截图重排到商店要求尺寸，图标补齐
-- [ ] 开发者账号：Chrome 一次性 $5；Edge 走 Partner Center，免费
-- [ ] 审核周期：Chrome 1–3 天，Edge 最长 7 天
+### 2. 安装包
 
-## 八、审核可能追问的点
+| 项目 | 值 |
+|---|---|
+| 文件 | `.output/mercury-2fa-0.7.2-edge.zip` |
+| 大小 | 540 KB（解压后 1.31 MB） |
+| 结构 | `manifest.json` 在压缩包根目录，14 个文件 |
+| 生成 | `npm run pack`（等价于 `wxt build -b edge && wxt zip -b edge`） |
 
-1. **为什么需要 `scripting`**：回答指向 activeTab 临时授权，并说明注入函数不读取页面内容（`lib/fill/autofill.ts`，只做打分与写值）。
-2. **为什么有 wasm**：二维码解码在本地运行，wasm 随包分发，不联网。
-3. **是否冒充认证器**：不冒充。扩展不实现 WebAuthn，不拦截任何请求，只写 6 位数字。
-4. **剪贴板为何会后写**：清空是安全设计，30 秒后覆写，期间用户复制的内容也会被清掉，设置里可关闭。
+压缩包根目录必须是 `manifest.json`，不能多套一层文件夹，否则 Partner Center 解析失败。
+
+## 七、提交流程
+
+1. 打开 `https://partner.microsoft.com/dashboard/microsoftedge`，用 Microsoft 账号登录。首次进入选择「注册 Microsoft Edge 计划」，注册免费，不需要信用卡。
+2. 「Edge 扩展」仪表板 → 新建扩展 → 上传 `.output/mercury-2fa-0.7.2-edge.zip`。系统解析 manifest，无红色报错即可继续。
+3. 属性（Properties）
+   - 类别：Productivity
+   - 隐私政策 URL：已托管的 `privacy.html` 地址
+   - 是否收集个人信息：否
+   - 成人内容：否
+   - 网站、支持联系人：可留空，建议填 GitHub 仓库地址
+4. 商店列表（Store listing）
+   - 显示名称：Mercury 2FA（取自 manifest）
+   - 简短描述、详细描述：抄第二、三节
+   - 商店 Logo：`logo-300.png`
+   - 截图：4 张 `shot-*.png`，顺序按列表、扫码、设置、锁定
+   - 小推广图：`promo-440x280.png`，可选
+   - 搜索词：第三节列的 7 个
+5. 可用性（Availability）：公开；市场选全部；不勾选定时发布。
+6. 审核说明（Notes for certification）：抄第八节。这段决定审核速度，审核员不知道主密码流程就会退回。
+7. 提交认证。审核周期 1–7 个工作日，结果发到账号邮箱。
+8. 通过后获得 `microsoftedge.microsoft.com/addons/detail/...` 链接。后续更新只需改版本号、重新 `npm run pack`、上传新包并重新提交，扩展 ID 不变。
+
+## 八、审核说明
+
+中文版（提交框内可中英并列）：
+
+> 本扩展是离线的两步验证码生成器，不需要登录、不需要联网即可完成全部功能测试。
+>
+> 测试步骤：
+> 1. 点击工具栏图标，首次打开显示「设置主密码」。输入任意 8 位以上密码并确认，派生耗时约 0.4 秒。
+> 2. 界面进入空列表。点右上角「＋」，在链接框粘贴 `otpauth://totp/GitHub:test?secret=JBSWY3DPEHPK3PXP&issuer=GitHub`，点保存。
+> 3. 列表出现一行 GitHub，右侧显示 6 位数字与倒计时进度条，每 30 秒刷新。点数字即复制。
+> 4. 点「设置」可看到自动锁定、剪贴板清空、更换主密码、导出备份。
+> 5. 点「立即锁定」回到密码界面，重新输入密码可解锁。
+>
+> 说明：验证码由种子与当前时间计算，设备时钟与真实时间相差超过 30 秒时数字不会被任何服务接受，属 TOTP 协议特性。扩展全程不发起网络请求，可在断网环境验证。
+
+English version:
+
+> This extension is an offline TOTP authenticator. No sign-in and no network access are required to test every feature.
+>
+> Steps:
+> 1. Click the toolbar icon. On first run a master password screen appears. Enter any password of 8+ characters; key derivation takes about 0.4 s.
+> 2. The list is empty. Click "+" at the top right, paste `otpauth://totp/GitHub:test?secret=JBSWY3DPEHPK3PXP&issuer=GitHub` into the URI field and save.
+> 3. A GitHub row appears with a 6-digit code and a countdown bar, refreshing every 30 s. Clicking the digits copies them.
+> 4. "Settings" exposes auto-lock, clipboard clearing, password change and encrypted backup export.
+> 5. "Lock now" returns to the password screen; unlocking requires the same password.
+>
+> Note: codes are derived from the seed and the current time, so a device clock off by more than 30 s will produce codes no server accepts. The extension makes no network requests at all and works with networking disabled.
+
+## 九、隐私政策托管
+
+`docs/privacy.html` 是自包含页面，无外部字体与脚本，可直接静态托管。GitHub Pages 路径最短：
+
+1. 建公开仓库，推入本仓库内容（`docs/` 目录随之上传）。
+2. 仓库 Settings → Pages → Source 选 `Deploy from a branch`，分支 `main`，目录 `/docs`。
+3. 等待约 1 分钟，地址形如 `https://<用户名>.github.io/<仓库名>/privacy.html`。
+4. 无痕窗口打开该地址确认可匿名访问，再填入 Partner Center。
+
+备案与内容合规不在本流程内。若使用自有域名，直接上传同一份 HTML 即可。
+
+## 十、提交前检查
+
+- [x] `npm test` 147 项全通过
+- [x] `npm run compile` 0 错误
+- [x] `npm run build` 与 `npm run build:edge` 均成功
+- [x] `manifest.json` 无 `host_permissions`，无 `content_scripts`
+- [x] 图标 16 / 32 / 48 / 128 已入包
+- [x] 截图 4 张 1280 × 800，Logo 300 × 300
+- [x] ZIP 根目录为 `manifest.json`
+- [ ] 隐私政策已托管，匿名可访问
+- [ ] Partner Center 账号已注册
+- [ ] 审核说明已粘贴
+
+## 十一、常见退回原因
+
+1. **权限理由过于笼统**：把「提升体验」换成具体动作，第三节已按此写。
+2. **描述与功能不符**：详细描述里出现扩展不具备的能力（如云同步、密码管理）会被要求修改。
+3. **隐私政策链接需要登录**：Gist 与私有仓库的 raw 链接都可能要求登录，用 Pages 或公开站点。
+4. **审核员无法进入主界面**：主密码是新设而非预设，审核说明必须写清「任意 8 位以上密码」。
+5. **远程代码误判**：产物含 wasm 时可能被追问，按第四节回答，指明 wasm 随包分发、`locateFile` 指向扩展内资产。
+6. **截图尺寸差 1 像素**：不接受非 1280 × 800 或 640 × 400 的图，用 `npm run assets` 生成而非截图工具裁切。

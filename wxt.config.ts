@@ -6,8 +6,14 @@ export default defineConfig({
   manifest: {
     name: 'Mercury 2FA',
     description: '离线 TOTP 验证码，零网络请求，不依赖任何账号。',
-    version: '0.7.1',
+    version: '0.7.2',
     key: EXTENSION_PUBLIC_KEY,
+    icons: {
+      16: 'icon/16.png',
+      32: 'icon/32.png',
+      48: 'icon/48.png',
+      128: 'icon/128.png',
+    },
     /** activeTab 让用户点图标后临时获得当前标签页的注入权，脚本里不申请任何站点权限 */
     permissions: [
       'storage',

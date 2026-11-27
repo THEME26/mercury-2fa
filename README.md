@@ -2,11 +2,11 @@
 
 离线的 2FA 验证码扩展，支持 Chrome 与 Edge。不联网、不注册账号、不上云。
 
-当前版本 **v0.7.1**：扫码导入、共用种子提醒、DEK 只在 offscreen 进程内存里，存储读写经 service worker 代理。安装时不申请任何站点权限。
+当前版本 **v0.7.2**：扫码导入、共用种子提醒、DEK 只在 offscreen 进程内存里，存储读写经 service worker 代理，已备齐商店图标与 1280×800 截图。安装时不申请任何站点权限。
 
-| 列表 | 扫码导入 |
+| 列表 | 导入 |
 |---|---|
-| ![列表](docs/list.png) | ![扫码导入](docs/scan.png) |
+| ![列表](docs/list.png) | ![导入](docs/scan.png) |
 
 ## 已实现
 
@@ -202,7 +202,9 @@ npm test              # 147 项
 npm run compile       # tsc --noEmit
 npm run build         # .output/chrome-mv3
 npm run build:edge    # .output/edge-mv3
-npm run zip           # 上架用压缩包
+npm run zip           # 上架用压缩包（当前版本，两个目标各一份）
+npm run pack          # 构建 Edge 并打包 zip
+npm run assets        # 生成图标与 1280×800 商店截图
 ```
 
 ## 加载与绑定 GitHub
@@ -229,6 +231,10 @@ npm run zip           # 上架用压缩包
 3. GitHub 的二维码页面点扩展图标 → 导入 → 「扫描当前页二维码」，识别后点「导入 1 条」。也可以手点二维码下方的 **enter this text code**，把 32 位 setup key 粘进 ＋ 的手填表单
 4. 在 GitHub 的验证页点扩展图标，底部出现「填入 GitHub」，点一下自动写入
 5. **立即到设置里导出加密备份**，并把 GitHub 的 recovery codes 存好
+
+## 上架
+
+安装包由 `npm run pack` 生成，`manifest.json` 位于压缩包根目录。提交流程、商店文案、权限理由、审核说明与素材清单见 `docs/STORE.md`；隐私政策页面为 `docs/privacy.html`，托管后把公开地址填入表单。
 
 ## 下一步
 

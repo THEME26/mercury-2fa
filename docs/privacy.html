@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mercury 2FA 隐私政策 · Privacy Policy</title>
+<style>
+  :root {
+    --text: #14181f;
+    --muted: #5b6472;
+    --line: #e3e6ea;
+    --accent: #2563eb;
+    --bg: #ffffff;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 56px 24px 96px;
+    background: var(--bg);
+    color: var(--text);
+    font: 16px/1.75 -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", system-ui, sans-serif;
+  }
+  main { max-width: 720px; margin: 0 auto; }
+  h1 { font-size: 28px; line-height: 1.35; margin: 0 0 8px; letter-spacing: -.01em; }
+  .meta { color: var(--muted); font-size: 14px; margin: 0 0 40px; }
+  h2 { font-size: 20px; margin: 44px 0 12px; padding-top: 20px; border-top: 1px solid var(--line); }
+  h3 { font-size: 16px; margin: 24px 0 6px; }
+  p { margin: 0 0 12px; }
+  ol, ul { margin: 0 0 12px; padding-left: 22px; }
+  li { margin: 4px 0; }
+  code {
+    font: 13px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    background: #f3f5f8;
+    padding: 2px 5px;
+    border-radius: 4px;
+  }
+  table { width: 100%; border-collapse: collapse; margin: 12px 0 16px; font-size: 15px; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { font-weight: 600; color: var(--muted); font-size: 13px; }
+  .en { margin-top: 56px; }
+  a { color: var(--accent); }
+</style>
+</head>
+<body>
+<main>
+  <h1>Mercury 2FA 隐私政策</h1>
+  <p class="meta">最后更新 2026-11-27 · 适用于 Chrome 与 Microsoft Edge 扩展</p>
+
+  <h2>一、收集哪些数据</h2>
+  <p>不收集。没有账号体系，没有分析埋点，没有崩溃上报，没有远程配置。</p>
+
+  <h2>二、数据存放在哪里</h2>
+  <p>验证码种子与设置只存在本机浏览器。存储中保存的是用主密码派生的密钥加密后的密文，明文只存在于后台页面的内存中，浏览器退出即消失。</p>
+  <p>扩展不具备把数据发往外部的代码路径：不申请 <code>host_permissions</code>，安装包内没有任何向外部主机发起的请求。</p>
+
+  <h2>三、各项权限的用途</h2>
+  <table>
+    <thead><tr><th>权限</th><th>用途</th></tr></thead>
+    <tbody>
+      <tr><td><code>storage</code></td><td>保存加密后的保险库与设置</td></tr>
+      <tr><td><code>clipboardWrite</code></td><td>把验证码写入剪贴板，并在到期后清空</td></tr>
+      <tr><td><code>idle</code></td><td>系统空闲或锁屏时立即丢弃内存中的密钥</td></tr>
+      <tr><td><code>activeTab</code></td><td>用户点开扩展图标后，向当前标签页写入验证码</td></tr>
+      <tr><td><code>scripting</code></td><td>执行上述写入动作所需的注入</td></tr>
+      <tr><td><code>alarms</code></td><td>到期清空剪贴板的定时器、备份健康度检查</td></tr>
+      <tr><td><code>offscreen</code></td><td>在后台页面完成解密与取码，使界面进程拿不到密钥</td></tr>
+    </tbody>
+  </table>
+  <p>不读取浏览历史，不读取网页内容，不申请任何站点权限。</p>
+
+  <h2>四、第三方</h2>
+  <p>不集成任何第三方 SDK、广告或统计服务。二维码识别使用随扩展分发的 zxing-wasm，本地运行，不联网。</p>
+
+  <h2>五、数据控制</h2>
+  <p>数据完全在用户手中：随时可在设置里导出加密备份，或删除扩展（连同其存储）以彻底清除数据。主密码不可找回，遗失只能通过备份文件恢复。</p>
+
+  <h2>六、联系方式</h2>
+  <p>通过扩展商店页面的支持渠道反馈。</p>
+
+  <section class="en" lang="en">
+    <h1>Privacy Policy</h1>
+    <p class="meta">Last updated 2026-11-27 · Applies to the Chrome and Microsoft Edge extensions</p>
+
+    <h2>1. Data we collect</h2>
+    <p>None. No accounts, no analytics, no crash reporting, no remote configuration.</p>
+
+    <h2>2. Where data lives</h2>
+    <p>Secrets and settings stay on the local device. Storage holds only ciphertext encrypted with a key derived from the master password; plaintext exists only in the background page's memory and disappears when the browser exits.</p>
+    <p>The extension has no code path that sends data anywhere: it requests no <code>host_permissions</code> and its bundle contains no requests to external hosts.</p>
+
+    <h2>3. Permissions</h2>
+    <ul>
+      <li><code>storage</code> — store the encrypted vault and settings.</li>
+      <li><code>clipboardWrite</code> — copy a code and clear it later.</li>
+      <li><code>idle</code> — drop the key from memory on idle or screen lock.</li>
+      <li><code>activeTab</code> — write a code into the current tab after the toolbar icon is clicked.</li>
+      <li><code>scripting</code> — perform that write.</li>
+      <li><code>alarms</code> — clipboard clearing and backup health checks.</li>
+      <li><code>offscreen</code> — decrypt in a background page so the UI process never holds the key.</li>
+    </ul>
+    <p>No browsing history, no page content, no site permissions.</p>
+
+    <h2>4. Third parties</h2>
+    <p>None. QR decoding uses zxing-wasm, bundled and executed locally.</p>
+
+    <h2>5. Your control</h2>
+    <p>Export an encrypted backup at any time, or remove the extension to delete all its data. The master password cannot be recovered; a backup file is the only fallback.</p>
+  </section>
+</main>
+</body>
+</html>

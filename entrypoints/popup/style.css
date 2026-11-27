@@ -174,15 +174,26 @@ button {
 }
 
 .row-sub {
+  display: flex;
+  align-items: center;
   font-size: 11px;
   color: var(--muted);
-  white-space: nowrap;
+  min-width: 0;
+}
+
+/* 账号过长时截断，标签必须完整可见 */
+.row-sub .acct {
+  flex: 0 1 auto;
+  min-width: 0;
   overflow: hidden;
+  white-space: nowrap;
   text-overflow: ellipsis;
 }
 
 .tag {
   display: inline-block;
+  flex: none;
+  white-space: nowrap;
   margin-left: 6px;
   padding: 0 4px;
   border: 1px solid var(--border);
@@ -424,10 +435,12 @@ button {
 .lock-mark {
   width: 34px;
   height: 34px;
-  border-radius: 11px;
-  background: var(--accent);
-  opacity: 0.9;
   margin-bottom: 14px;
+}
+
+.lock-mark svg {
+  display: block;
+  border-radius: 7.5px;
 }
 
 .lock-title {

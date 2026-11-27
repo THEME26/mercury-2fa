@@ -278,7 +278,7 @@ export default function App() {
               <div className="row-main">
                 <div className="row-title">{view.issuer || '未命名'}</div>
                 <div className="row-sub">
-                  {view.account || '—'}
+                  <span className="acct">{view.account || '—'}</span>
                   {view.type !== 'totp' && <span className="tag">{view.type.toUpperCase()}</span>}
                   {view.type === 'hotp' && <span className="tag">#{view.step}</span>}
                   {spec !== '' && (
