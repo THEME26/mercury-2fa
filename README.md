@@ -242,5 +242,9 @@ npm run assets        # 生成图标与 1280×800 商店截图
 
 1. 真机回归：GitHub、Google、AWS、Cloudflare 四个登录页填通，十个只有密码框的页面零误填
 2. 真机确认剪贴板 30 秒后确实被清空，以及锁定、重启、休眠三种情况下密钥不残留
-3. 双商店提交（材料见 `docs/STORE.md`，隐私政策见 `docs/PRIVACY.md`）
+3. 双商店提交（材料见 `docs/STORE.md`，隐私政策见 `docs/privacy.html`）
 4. 可选开启常驻内容脚本，换取页面加载即挂标的零点击体验
+
+## 许可证
+
+MIT，见 [LICENSE](LICENSE)。第三方组件与各自许可证列在 [NOTICE](NOTICE)。
