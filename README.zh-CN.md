@@ -125,6 +125,10 @@ npm run shots -- zh-CN # 同上，中文一套
 | 时钟偏差提示 | 扩展看不到登录失败的原因，任何判定都是猜测 |
 | 其余六种语言的商店截图 | 文案与界面须一致，每加一种都要单独截一轮 |
 
+## 致谢
+
+代码由 [WorkBuddy](https://www.workbuddy.ai) 作为编码代理编写，底层模型为 DeepSeek-V4.1-Flash。本仓库的代码、测试、商店截图与文档均在这些会话中产出；[docs/VERIFICATION.zh-CN.md](docs/VERIFICATION.zh-CN.md) 中的每条断言都对真实产物核过。
+
 ## 许可证
 
 MIT，见 [LICENSE](LICENSE)。第三方组件列于 [NOTICE](NOTICE)。

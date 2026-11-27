@@ -125,6 +125,10 @@ The packaged extension is 561 KB, 1.42 MB unpacked across 25 files, of which 946
 | Clock skew warning | The extension never sees why a login failed, so any verdict would be guesswork |
 | Store screenshots for the other six languages | Captions and interface have to match, so each language needs its own capture run |
 
+## Credits
+
+Written with [WorkBuddy](https://www.workbuddy.ai) as the coding agent, running DeepSeek-V4.1-Flash. The code, tests, store screenshots and documentation in this repository were produced in those sessions; every claim in [docs/VERIFICATION.md](docs/VERIFICATION.md) was checked against a real build.
+
 ## License
 
 MIT, see [LICENSE](LICENSE). Third-party components are listed in [NOTICE](NOTICE).
