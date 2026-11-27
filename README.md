@@ -17,7 +17,7 @@
 | 进程边界 | 解密与取码只在 offscreen 文档里发生，popup 拿到的返回值里没有种子字段 |
 | 解锁 | 主密码解锁，空闲 5/15/30/60 分钟自动锁定，系统空闲或锁屏立刻丢弃 DEK 并关闭 offscreen |
 | 迁移 | 首次创建时自动把 v0.1 的明文库加密并入，原键删除 |
-| 条目 | 添加 / 删除 / 置顶 / STEAM 与 HOTP 变体 / 倒计时进度条 / 剩余 5 秒转红 |
+| 条目 | 添加 / 删除 / 置顶 / STEAM 与 HOTP 变体 / 倒计时进度条 / 剩余 5 秒转红；非默认的算法、位数、周期在行内标出 |
 | 扫码 | 截当前页 → 本地 zxing-wasm 识别二维码 → 回填导入框，支持普通链接与 GA 迁移码 |
 | 导入 | Google Authenticator 迁移码、Aegis、2FAS、andOTP、Bitwarden、otpauth 链接串 |
 | 备份 | 加密备份导出与恢复、更换主密码（只重封装 DEK，库体不重写）、恢复时核对条数 |
@@ -100,7 +100,7 @@ popup（界面）  --命令-->  service worker（路由 + 存储）  --命令-->
 
 | 项目 | 结果 |
 |---|---|
-| 单元测试 | **146 项**全通过 |
+| 单元测试 | **147 项**全通过 |
 | RFC 4226 十组 HOTP 向量 | 全部匹配 |
 | RFC 6238 六时点 × SHA1/256/512 | 18 组全部匹配 |
 | 命令白名单 | 未知 op / target 不符 / 缺字段 / 超长文本 / 多余字段注入，逐项拒绝 |
@@ -174,7 +174,7 @@ lib/crypto-host.ts       加密边界；唯一实现把 DEK 放在内存变量�
 lib/browser-store.ts     storage.local / storage.session 适配
 lib/importers.ts         GA protobuf、各家 JSON、otpauth 串
 lib/totp.ts …            取码内核
-tests/                   146 项，含二维码样本与 jsdom 填充用例
+tests/                   147 项，含二维码样本与 jsdom 填充用例
 ```
 
 ## 数据格式
@@ -198,7 +198,7 @@ tests/                   146 项，含二维码样本与 jsdom 填充用例
 
 ```bash
 npm install
-npm test              # 146 项
+npm test              # 147 项
 npm run compile       # tsc --noEmit
 npm run build         # .output/chrome-mv3
 npm run build:edge    # .output/edge-mv3

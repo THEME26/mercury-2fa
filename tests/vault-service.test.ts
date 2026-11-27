@@ -95,6 +95,19 @@ describe('条目与取码', () => {
     expect(JSON.stringify(view).includes('JBSWY3DPEHPK3PXP')).toBe(false);
   });
 
+  it('视图带上算法、位数与周期，界面据此标注非默认参数', async () => {
+    await ctx.service.add({ uri: GITHUB_URI });
+    await ctx.service.add({
+      uri: 'otpauth://totp/Cloudflare:ops?secret=JBSWY3DPEHPK3PXP&issuer=Cloudflare&algorithm=SHA256&digits=8&period=60',
+    });
+    const views = await ctx.service.listCodes();
+    const cloudflare = views.find((view) => view.issuer === 'Cloudflare');
+    expect(cloudflare).toMatchObject({ algorithm: 'SHA-256', digits: 8, period: 60 });
+    expect(cloudflare!.code).toMatch(/^\d{8}$/);
+    const github = views.find((view) => view.issuer === 'GitHub');
+    expect(github).toMatchObject({ algorithm: 'SHA-1', digits: 6, period: 30 });
+  });
+
   it('重复条目被拒绝', async () => {
     await ctx.service.add({ uri: GITHUB_URI });
     await expect(ctx.service.add({ uri: GITHUB_URI })).rejects.toThrow(/已经在库/);

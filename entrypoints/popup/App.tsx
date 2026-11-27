@@ -245,6 +245,14 @@ export default function App() {
           const periodMs = view.period * 1000;
           const progress = view.expiresAt > 0 ? Math.max(0, Math.min(1, remainingMs / periodMs)) : 0;
           const expiring = view.expiresAt > 0 && remainingMs <= 5000;
+          /** 只标与默认值不同的参数：SHA-1 / 6 位 / 30 秒不占位置 */
+          const spec = [
+            view.type === 'totp' && view.algorithm !== 'SHA-1' ? view.algorithm : null,
+            view.type !== 'steam' && view.digits !== 6 ? `${view.digits} 位` : null,
+            view.type === 'totp' && view.period !== 30 ? `${view.period} 秒` : null,
+          ]
+            .filter((part): part is string => part !== null)
+            .join(' · ');
 
           return (
             <div
@@ -273,6 +281,11 @@ export default function App() {
                   {view.account || '—'}
                   {view.type !== 'totp' && <span className="tag">{view.type.toUpperCase()}</span>}
                   {view.type === 'hotp' && <span className="tag">#{view.step}</span>}
+                  {spec !== '' && (
+                    <span className="tag" title="与服务端不一致时验证码必然被拒">
+                      {spec}
+                    </span>
+                  )}
                   {view.sharedSecret && <span className="tag warn">共用种子</span>}
                 </div>
               </div>

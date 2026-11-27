@@ -184,6 +184,13 @@ export default function AddForm({ onAdded, onCancel }: { onAdded: () => void; on
         </div>
       )}
 
+      {form.type !== 'steam' && (
+        <p className="hint">
+          SHA-1 / 6 位 / 30 秒是绝大多数服务的组合，GitHub、Google、AWS、Cloudflare 都用它。三个参数必须与服务端一致，
+          不一致的表现是验证码永远被拒。扫码导入会自动带上服务端的取值，手填时才需要自己核对。
+        </p>
+      )}
+
       {error && <div className="error">{error}</div>}
 
       <div className="actions">

@@ -36,6 +36,8 @@ export interface EntryView {
   type: OtpType;
   issuer: string;
   account: string;
+  /** 非 SHA-1 的条目界面上要标出来，否则登录失败时无从查起 */
+  algorithm: HmacAlgorithm;
   digits: number;
   period: number;
   pinned: boolean;

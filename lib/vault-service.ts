@@ -234,6 +234,7 @@ export class VaultService {
       type: entry.type,
       issuer: entry.issuer,
       account: entry.account,
+      algorithm: entry.algorithm,
       digits: entry.digits,
       period: entry.period,
       pinned: Boolean(entry.pinned),
