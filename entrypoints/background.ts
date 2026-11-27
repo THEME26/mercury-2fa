@@ -9,6 +9,7 @@ import {
   type VaultReply,
 } from '../lib/protocol';
 import { parseStoreRequest } from '../lib/store-bridge';
+import { backupBadgeText } from '../lib/badge';
 import { CLIPBOARD_ALARM } from '../lib/clipboard';
 import type { Settings } from '../lib/types';
 
@@ -16,7 +17,8 @@ const OFFSCREEN_PATH = 'offscreen.html';
 
 const BADGE_ALARM = 'mc.badge';
 const BADGE_COLOR = '#B45309';
-const BACKUP_STALE_MS = 30 * 24 * 60 * 60 * 1000;
+/** 这两处写入会影响角标：库体（条数）与设置（上次导出时间） */
+const BADGE_KEYS = new Set(['vault.v2', 'settings.v1']);
 
 interface OffscreenApi {
   hasDocument(): Promise<boolean>;
@@ -83,13 +85,23 @@ export default defineBackground(() => {
   async function refreshBadge(): Promise<void> {
     const vault = await localStore.get<{ entryCount?: number }>('vault.v2');
     const settings = (await localStore.get<Partial<Settings>>('settings.v1')) ?? {};
-    let text = '';
-    if (vault && (vault.entryCount ?? 0) > 0) {
-      const last = settings.lastBackupAt;
-      if (typeof last !== 'number' || Date.now() - last > BACKUP_STALE_MS) text = '!';
-    }
+    const text = backupBadgeText(vault?.entryCount ?? 0, settings.lastBackupAt, Date.now());
     await browser.action.setBadgeBackgroundColor({ color: BADGE_COLOR });
     await browser.action.setBadgeText({ text });
+  }
+
+  /**
+   * 保险库与设置在 offscreen 里写，写完整批才生效，所以刷新合并到一次。
+   * 没有这一层时，角标只在 12 小时闹钟、浏览器启动或扩展更新时重算，
+   * 加完条目仍不显示，导出备份后又要挂满 12 小时。
+   */
+  let badgeTimer: ReturnType<typeof setTimeout> | null = null;
+  function scheduleBadgeRefresh(): void {
+    if (badgeTimer !== null) clearTimeout(badgeTimer);
+    badgeTimer = setTimeout(() => {
+      badgeTimer = null;
+      void refreshBadge();
+    }, 300);
   }
 
   /**
@@ -114,6 +126,7 @@ export default defineBackground(() => {
         } else {
           await area.remove(request.key);
         }
+        if (request.kind === 'local' && BADGE_KEYS.has(request.key)) scheduleBadgeRefresh();
         sendResponse(okReply(true));
       } catch (cause) {
         sendResponse(errorReply(cause));

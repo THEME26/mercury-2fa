@@ -81,7 +81,9 @@ Two limits follow from the platform:
 - `alarms` has a 30-second minimum granularity, so anything shorter runs at 30 seconds; no shorter option is offered.
 - The extension does not request `clipboardRead`, which would add "read data you copy" to the install prompt. It therefore cannot tell whether the clipboard still holds its own code, and anything copied in the meantime is cleared as well.
 
-A countdown badge was considered and dropped: a 30-second period against a 30-second alarm granularity would never change the number. The badge slot went to backup health instead, turning into an amber `!` when no export has been made for 30 days.
+A countdown badge was considered and dropped: a 30-second period against a 30-second alarm granularity would never change the number. The badge slot went to backup health instead: an amber `!` while the vault holds entries and no export exists, or the last one is older than 30 days.
+
+The badge is recomputed on three triggers: a write to `vault.v2` or `settings.v1` through the storage bridge (coalesced over 300 ms), the 12-hour alarm, and browser start or extension install. Without the first trigger it only refreshes twice a day, so a fresh entry could sit unmarked and a finished export would keep showing `!` for up to 12 hours.
 
 ## Shared seeds
 

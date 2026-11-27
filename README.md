@@ -10,7 +10,7 @@ Two-factor authenticator (TOTP) for Chrome and Edge. Codes are computed on this 
 |---|---|
 | ![Code list](docs/list.png) | ![Import](docs/scan.png) |
 
-Version 0.8.1. Eight interface languages, QR import, encrypted backup. No site permissions at install, and clipboard clearing stays off until you grant it in Settings.
+Version 0.8.2. Eight interface languages, QR import, encrypted backup. No site permissions at install, and clipboard clearing stays off until you grant it in Settings.
 
 ## Install
 
@@ -35,7 +35,7 @@ The unpacked install references the build directory in place: moving or deleting
 2. Add an account from the ＋ button in the popup header, or open Import and paste an export file or an `otpauth` URI.
 3. Click the icon to read codes. Clicking a code copies it.
 4. On a login page, click the icon and press "Fill <site>". The code goes into the field the extension recognises.
-5. Export an encrypted backup from Settings. Without one for 30 days the badge turns into an amber `!`.
+5. Export an encrypted backup from Settings. Until one exists the toolbar badge shows an amber `!`; each export clears it and buys another 30 days.
 
 Settings holds auto-lock (5 / 15 / 30 / 60 minutes idle), clipboard clearing (off until enabled, then 30 seconds / 1 minute / 2 minutes / never), password change, backup export and restore, a four-check self test, and the interface language.
 
@@ -94,7 +94,7 @@ A missing key in any of the eight dictionaries fails the type check. `tests/i18n
 
 ```bash
 npm install
-npm test               # 168 tests
+npm test               # 173 tests
 npm run compile        # tsc --noEmit
 npm run build          # .output/chrome-mv3
 npm run build:edge     # .output/edge-mv3

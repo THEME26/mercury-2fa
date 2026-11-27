@@ -6,7 +6,7 @@
 
 | 项目 | 检查方式 |
 |---|---|
-| 单元测试 | **168 项**全通过 |
+| 单元测试 | **173 项**全通过 |
 | RFC 4226 十组 HOTP 向量 | 全部匹配 |
 | RFC 6238 六时点 × SHA1/256/512 | 18 组全部匹配 |
 | 命令白名单 | 未知 op、target 不符、缺字段、超长文本、多余字段注入，逐项拒绝 |
@@ -24,6 +24,7 @@
 | 剪贴板清空路径 | offscreen 内 `navigator.clipboard.writeText` 必报 `Document is not focused`；`document.execCommand('copy')` 在持有 `clipboardWrite` 时返回 `true`，不持有则返回 `false`，清空取决于这一项权限 |
 | 剪贴板权限拆分 | 全新配置，`clipboardWrite` 位于 `optional_permissions`：`permissions.contains` 为 false，popup 内复制仍成功，offscreen 清空返回 false。同一份产物把该权限改为必需后，contains 为 true 且清空成功 |
 | 剪贴板选开界面 | 未授权时设置页显示「未开启」与授权按钮，复制提示只有 `Copied`；授权后出现延时下拉，提示为 `Copied · clears in 30 s` |
+| 图标角标时机 | 全新配置：空库无角标；加一条且未导出时 300 毫秒内出现 `!`；导出后立即消失；删掉最后一条仍为空；重载扩展后仍为空 |
 | 分块隔离 | popup 分块中 `argon2id`、`wrappedDek`、`AES-GCM` 匹配数均为 0 |
 | 类型检查 | `tsc --noEmit` 0 错误 |
 | 词条对齐 | 八种语言的键集合完全相同、无空词条、占位符与英文一致；少键在类型检查阶段报错 |

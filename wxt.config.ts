@@ -8,7 +8,7 @@ export default defineConfig({
     name: '__MSG_extName__',
     description: '__MSG_extDescription__',
     default_locale: 'en',
-    version: '0.8.1',
+    version: '0.8.2',
     key: EXTENSION_PUBLIC_KEY,
     icons: {
       16: 'icon/16.png',

@@ -2,14 +2,14 @@
 
 [English](STORE.md) | **简体中文**
 
-版本 0.8.1。本文件按「逐项复制进表单」组织，代码变更后回来同步。
+版本 0.8.2。本文件按「逐项复制进表单」组织，代码变更后回来同步。
 
 ## 一、基本信息
 
 | 字段 | 值 |
 |---|---|
 | 名称（取自 manifest，不可改） | Mercury 2FA |
-| 版本 | 0.8.1 |
+| 版本 | 0.8.2 |
 | 类别 | Productivity |
 | 语言 | 英文（默认），另有简体中文、繁体中文、日文、韩文、德文、法文、西班牙文，设置内切换 |
 | 单一用途 | 在本机生成并填写两步验证验证码 |
@@ -123,7 +123,7 @@ npm run assets             # 两套一起出图到 docs/store/
 
 | 项目 | 值 |
 |---|---|
-| 文件 | `.output/mercury-2fa-0.8.1-edge.zip` |
+| 文件 | `.output/mercury-2fa-0.8.2-edge.zip` |
 | 大小 | 562 KB（解压后 1.43 MB） |
 | 结构 | `manifest.json` 在压缩包根目录，25 个文件，含八个 `_locales` 目录与 `licenses/` 三份许可证副本 |
 | 生成 | `npm run pack`（等价于 `wxt build -b edge && wxt zip -b edge`） |
@@ -201,7 +201,7 @@ English version:
 
 ## 十、提交前检查
 
-- [x] `npm test` 168 项全通过
+- [x] `npm test` 173 项全通过
 - [x] `npm run compile` 0 错误
 - [x] `npm run build` 与 `npm run build:edge` 均成功
 - [x] `manifest.json` 无 `host_permissions`，无 `content_scripts`
