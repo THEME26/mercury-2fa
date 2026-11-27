@@ -19,6 +19,7 @@ const LABELS = {
     parse: '^Parse$',
     apply: '^Import 3$',
     settings: '^Settings$',
+    export: '^Export backup file$',
     back: '^Back$',
     lock: '^Lock now$',
   },
@@ -28,6 +29,7 @@ const LABELS = {
     parse: '^解析$',
     apply: '^导入 3 条$',
     settings: '^设置$',
+    export: '^导出备份文件$',
     back: '^返回$',
     lock: '^立即锁定$',
   },
@@ -196,9 +198,11 @@ if (remain < 16000) await sleep(remain + 400);
 await sleep(900);
 await shoot('list');
 
-// 3 设置
+// 3 设置（先导出一次，截出来的备份状态是健康的，不出现「从未导出」警示）
 console.log('进设置:', await clickByText(LABELS.settings));
 await sleep(1000);
+console.log('导出备份:', await clickByText(LABELS.export));
+await sleep(1400);
 console.log('设置页:', await text());
 await shoot('settings');
 

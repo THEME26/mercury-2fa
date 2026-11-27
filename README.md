@@ -10,7 +10,7 @@ Two-factor authenticator (TOTP) for Chrome and Edge. Codes are computed on this 
 |---|---|
 | ![Code list](docs/list.png) | ![Import](docs/scan.png) |
 
-Version 0.8.2. Eight interface languages, QR import, encrypted backup. No site permissions at install, and clipboard clearing stays off until you grant it in Settings.
+Version 0.8.3. Eight interface languages, QR import, encrypted backup. No site permissions at install, and clipboard clearing stays off until you grant it in Settings.
 
 ## Install
 
@@ -35,7 +35,7 @@ The unpacked install references the build directory in place: moving or deleting
 2. Add an account from the ＋ button in the popup header, or open Import and paste an export file or an `otpauth` URI.
 3. Click the icon to read codes. Clicking a code copies it.
 4. On a login page, click the icon and press "Fill <site>". The code goes into the field the extension recognises.
-5. Export an encrypted backup from Settings. Until one exists the toolbar badge shows an amber `!`; each export clears it and buys another 30 days.
+5. Export an encrypted backup from Settings. Settings warns while no backup exists and again once the last export is 30 days old.
 
 Settings holds auto-lock (5 / 15 / 30 / 60 minutes idle), clipboard clearing (off until enabled, then 30 seconds / 1 minute / 2 minutes / never), password change, backup export and restore, a four-check self test, and the interface language.
 
@@ -59,7 +59,7 @@ Settings holds auto-lock (5 / 15 / 30 / 60 minutes idle), clipboard clearing (of
 | Autofill | Injects into the current tab after a click; handles six-box split inputs, shadow DOM, and React/Vue controlled inputs. |
 | Clipboard | Copying works as installed. Clearing the clipboard afterwards is opt-in and needs one optional permission. |
 | Backup | Encrypted export and restore, entry count checked on restore, password change re-wraps the key only. |
-| Warnings | Shared-seed marking; backup age badge. |
+| Warnings | Shared-seed marking; backup reminder inside Settings. |
 | Languages | Eight locales, English default. |
 
 ## Security model

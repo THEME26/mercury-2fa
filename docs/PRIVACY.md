@@ -24,7 +24,7 @@ The extension has no code path that sends data anywhere: it requests no `host_pe
 | `idle` | Drop the key from memory when the system goes idle or the screen locks |
 | `activeTab` | Write a code into the current tab after the toolbar icon is clicked |
 | `scripting` | Perform that write |
-| `alarms` | Timer for clipboard clearing, backup health checks |
+| `alarms` | Timer that clears the clipboard when it expires |
 | `offscreen` | Decrypt and generate codes in a background page so the UI process never holds the key |
 
 No browsing history, no page content, no site permissions.

@@ -10,7 +10,7 @@ MV3 的 service worker 会被随时回收，popup 一关即消失，两者都放
 
 ```
 popup（界面）  --命令-->  service worker（路由 + 存储）  --命令-->  offscreen（解密、取码）
-                        ↑ 创建/关闭文档、闹钟、角标、读写存储            持有 DEK，只在内存变量里
+                        ↑ 创建/关闭文档、闹钟、读写存储                    持有 DEK，只在内存变量里
                         └──────────  store 请求  ←─────────────────────┘
 ```
 
@@ -81,9 +81,11 @@ popup（界面）  --命令-->  service worker（路由 + 存储）  --命令-->
 - `alarms` 的最小粒度为 30 秒，短于 30 秒的设置按 30 秒执行，因此不提供更短的选项
 - 扩展不申请 `clipboardRead`（该权限会让安装提示出现「读取你复制的内容」），因此无法判断剪贴板里是否仍是自己写入的验证码。此期间用户复制的内容同样会被清掉
 
-图标倒计时评估后放弃：30 秒周期配 30 秒粒度的闹钟，角标数字永远不会变化。角标改用于备份健康度：库里有条目且从未导出、或上次导出超过 30 天时显示琥珀色 `!`。
+图标倒计时评估后放弃：30 秒周期配 30 秒粒度的闹钟，角标数字永远不会变化。备份时效角标短暂顶替过这个位置，0.8.3 撤掉：图标上的琥珀色标记容易被读成浏览器出了故障，而它提示的事情在工具栏上又无法处理。
 
-角标的三个重算时机：经存储通道写入 `vault.v2` 或 `settings.v1`（300 毫秒内合并）、12 小时闹钟、浏览器启动或扩展更新。缺了第一个时机，一天只重算两次，新加的条目可能迟迟不挂角标，刚做完的导出又要挂满 12 小时。
+提醒改放在设置页。`lib/backup-reminder.ts` 的 `backupReminder(entryCount, lastBackupAt, now)` 返回 `never`、`stale`、`fresh`，前两种在「上次导出」下面渲染一行琥珀色文字。两种状态分开，是为了措辞能不同：一种说还没有退路，另一种说文件旧了。
+
+从 0.8.2 升级时，`runtime.onInstalled` 清掉遗留的角标文字与 `mc.badge` 闹钟，其余代码不再读写这两样。
 
 ## 共用种子
 
@@ -127,7 +129,7 @@ v0.1 版本留下的明文库会在首次建库时加密并入，随后删除旧
 ```
 entrypoints/popup        React 界面：锁屏、列表、添加、导入、设置
 entrypoints/offscreen    唯一持有 DEK 的上下文，执行全部加解密与取码
-entrypoints/background   service worker：创建/关闭 offscreen、转发命令、闹钟、角标
+entrypoints/background   service worker：创建/关闭 offscreen、转发命令、闹钟
 lib/protocol.ts          命令白名单、字段重建、出站 secret 闸门
 lib/offscreen-router.ts  命令分发（纯函数，可脱离浏览器测试）
 lib/remote-client.ts     popup 侧客户端，签名与 VaultService 一致

@@ -10,7 +10,7 @@ MV3 service workers are terminated at will, and a popup disappears when it close
 
 ```
 popup (UI)  --commands-->  service worker (routing + storage)  --commands-->  offscreen (decrypt, generate)
-                            ^ create/close document, alarms, badge, storage I/O    holds the DEK in a memory variable
+                            ^ create/close document, alarms, storage I/O         holds the DEK in a memory variable
                             └──────────  store requests  <───────────────────────┘
 ```
 
@@ -81,9 +81,11 @@ Two limits follow from the platform:
 - `alarms` has a 30-second minimum granularity, so anything shorter runs at 30 seconds; no shorter option is offered.
 - The extension does not request `clipboardRead`, which would add "read data you copy" to the install prompt. It therefore cannot tell whether the clipboard still holds its own code, and anything copied in the meantime is cleared as well.
 
-A countdown badge was considered and dropped: a 30-second period against a 30-second alarm granularity would never change the number. The badge slot went to backup health instead: an amber `!` while the vault holds entries and no export exists, or the last one is older than 30 days.
+A countdown badge was considered and dropped: a 30-second period against a 30-second alarm granularity would never change the number. A backup-age badge briefly took its place and was removed in 0.8.3: an amber mark on the toolbar icon is easy to read as a fault in the browser rather than a backup that is due, and it competes with nothing the user can act on from the toolbar.
 
-The badge is recomputed on three triggers: a write to `vault.v2` or `settings.v1` through the storage bridge (coalesced over 300 ms), the 12-hour alarm, and browser start or extension install. Without the first trigger it only refreshes twice a day, so a fresh entry could sit unmarked and a finished export would keep showing `!` for up to 12 hours.
+The reminder lives in Settings instead. `backupReminder(entryCount, lastBackupAt, now)` in `lib/backup-reminder.ts` returns `never`, `stale` or `fresh`; the panel renders the first two as an amber line under "Last export". `never` and `stale` are separate states so the copy can differ: one says there is no way back yet, the other that the file is old.
+
+Upgrading from 0.8.2 clears the leftover badge text and the `mc.badge` alarm in `runtime.onInstalled`; nothing else reads either of them.
 
 ## Shared seeds
 
@@ -127,7 +129,7 @@ Three derivation tiers: low 19 MiB/t=2 (~100 ms), medium 64 MiB/t=3 (~400 ms), h
 ```
 entrypoints/popup        React UI: lock screen, list, add, import, settings
 entrypoints/offscreen    the only context holding the DEK; all crypto and code generation
-entrypoints/background   service worker: offscreen lifecycle, command forwarding, alarms, badge
+entrypoints/background   service worker: offscreen lifecycle, command forwarding, alarms
 lib/protocol.ts          command whitelist, field rebuild, outbound secret gate
 lib/offscreen-router.ts  command dispatch (pure functions, testable without a browser)
 lib/remote-client.ts     popup-side client mirroring the VaultService signatures

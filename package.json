@@ -1,6 +1,6 @@
 {
   "name": "mercury-2fa",
-  "version": "0.8.2",
+  "version": "0.8.3",
   "private": true,
   "type": "module",
   "description": "离线 TOTP 验证码扩展，支持 Chrome 与 Edge",

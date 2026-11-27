@@ -9,16 +9,12 @@ import {
   type VaultReply,
 } from '../lib/protocol';
 import { parseStoreRequest } from '../lib/store-bridge';
-import { backupBadgeText } from '../lib/badge';
 import { CLIPBOARD_ALARM } from '../lib/clipboard';
-import type { Settings } from '../lib/types';
 
 const OFFSCREEN_PATH = 'offscreen.html';
 
-const BADGE_ALARM = 'mc.badge';
-const BADGE_COLOR = '#B45309';
-/** 这两处写入会影响角标：库体（条数）与设置（上次导出时间） */
-const BADGE_KEYS = new Set(['vault.v2', 'settings.v1']);
+/** 0.8.2 及更早版本用这个闹钟重算图标角标，升级后清掉 */
+const LEGACY_BADGE_ALARM = 'mc.badge';
 
 interface OffscreenApi {
   hasDocument(): Promise<boolean>;
@@ -81,29 +77,6 @@ export default defineBackground(() => {
     return reply;
   }
 
-  /** 备份健康度：超过 30 天没导出，或者从来没导出过，就在图标上挂个角标 */
-  async function refreshBadge(): Promise<void> {
-    const vault = await localStore.get<{ entryCount?: number }>('vault.v2');
-    const settings = (await localStore.get<Partial<Settings>>('settings.v1')) ?? {};
-    const text = backupBadgeText(vault?.entryCount ?? 0, settings.lastBackupAt, Date.now());
-    await browser.action.setBadgeBackgroundColor({ color: BADGE_COLOR });
-    await browser.action.setBadgeText({ text });
-  }
-
-  /**
-   * 保险库与设置在 offscreen 里写，写完整批才生效，所以刷新合并到一次。
-   * 没有这一层时，角标只在 12 小时闹钟、浏览器启动或扩展更新时重算，
-   * 加完条目仍不显示，导出备份后又要挂满 12 小时。
-   */
-  let badgeTimer: ReturnType<typeof setTimeout> | null = null;
-  function scheduleBadgeRefresh(): void {
-    if (badgeTimer !== null) clearTimeout(badgeTimer);
-    badgeTimer = setTimeout(() => {
-      badgeTimer = null;
-      void refreshBadge();
-    }, 300);
-  }
-
   /**
    * offscreen 的存储代理。offscreen 不保证有 chrome.storage，保险库读写都走这条通道。
    * 只接受 offscreen.html 发来的请求，popup 不能借这里改写密文。
@@ -126,7 +99,6 @@ export default defineBackground(() => {
         } else {
           await area.remove(request.key);
         }
-        if (request.kind === 'local' && BADGE_KEYS.has(request.key)) scheduleBadgeRefresh();
         sendResponse(okReply(true));
       } catch (cause) {
         sendResponse(errorReply(cause));
@@ -153,18 +125,15 @@ export default defineBackground(() => {
   });
 
   browser.alarms.onAlarm.addListener((alarm) => {
-    if (alarm.name === CLIPBOARD_ALARM) {
-      void (async () => {
-        try {
-          await forward({ op: 'clipboardClear' });
-        } catch {
-          /** 清不掉就放弃，不在下次打开时盲目覆写用户可能已复制的其他内容 */
-        }
-        await browser.alarms.clear(CLIPBOARD_ALARM);
-      })();
-      return;
-    }
-    if (alarm.name === BADGE_ALARM) void refreshBadge();
+    if (alarm.name !== CLIPBOARD_ALARM) return;
+    void (async () => {
+      try {
+        await forward({ op: 'clipboardClear' });
+      } catch {
+        /** 清不掉就放弃，不在下次打开时盲目覆写用户可能已复制的其他内容 */
+      }
+      await browser.alarms.clear(CLIPBOARD_ALARM);
+    })();
   });
 
   /** 系统空闲或锁屏时立刻丢弃 DEK，并把 offscreen 一起关掉 */
@@ -182,14 +151,8 @@ export default defineBackground(() => {
 
   browser.runtime.onInstalled.addListener((details) => {
     console.info(`[mercury-2fa] ${details.reason} v${browser.runtime.getManifest().version}`);
-    void browser.alarms.create(BADGE_ALARM, { periodInMinutes: 60 * 12 });
-    void refreshBadge();
+    // 0.8.2 及更早版本在图标上挂过备份角标，升级时把痕迹与闹钟都清掉
+    void browser.action.setBadgeText({ text: '' });
+    void browser.alarms.clear(LEGACY_BADGE_ALARM);
   });
-
-  browser.runtime.onStartup.addListener(() => {
-    void refreshBadge();
-  });
-
-  void browser.alarms.create(BADGE_ALARM, { periodInMinutes: 60 * 12 });
-  void refreshBadge();
 });

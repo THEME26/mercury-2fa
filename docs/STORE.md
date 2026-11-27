@@ -1,6 +1,6 @@
 # Edge Store Submission: Materials and Steps
 
-Version 0.8.2. Each block below can be copied into the Partner Center form as it stands. Update this file whenever the extension changes.
+Version 0.8.3. Each block below can be copied into the Partner Center form as it stands. Update this file whenever the extension changes.
 
 **English** | [简体中文](STORE.zh-CN.md)
 
@@ -9,7 +9,7 @@ Version 0.8.2. Each block below can be copied into the Partner Center form as it
 | Field | Value |
 |---|---|
 | Name (from manifest, not editable) | Mercury 2FA |
-| Version | 0.8.2 |
+| Version | 0.8.3 |
 | Category | Productivity |
 | Language | English (default), plus Simplified Chinese, Traditional Chinese, Japanese, Korean, German, French and Spanish; the user switches inside Settings |
 | Single purpose | Generate and fill two-factor codes on the local device |
@@ -89,7 +89,7 @@ Chinese:
 | `idle` | Drop the decryption key from memory as soon as the system goes idle or the screen locks, shortening the exposure window. |
 | `activeTab` | Grants temporary access to the current tab only after the user clicks the toolbar icon, in order to write the code into that page's verification field. No access occurs otherwise. |
 | `scripting` | Execute a self-contained function inside the activeTab grant that writes the code into the input and dispatches an input event. The function does not read page content. |
-| `alarms` | Two scheduled tasks: clearing the clipboard when it expires, and a backup health check that warns after 30 days without an export. |
+| `alarms` | Clearing the clipboard when it expires. |
 | `offscreen` | Run Argon2id derivation, decryption and code generation in an invisible background document so the UI process never touches secrets or keys. |
 
 Site permissions: none. Neither `host_permissions` nor `content_scripts` is requested.
@@ -151,7 +151,7 @@ The settings screenshot shows a fresh install, where clipboard clearing is off a
 
 | Item | Value |
 |---|---|
-| File | `.output/mercury-2fa-0.8.2-edge.zip` |
+| File | `.output/mercury-2fa-0.8.3-edge.zip` |
 | Size | 562 KB (1.43 MB unpacked) |
 | Structure | `manifest.json` at the archive root, 25 files, including the eight `_locales` folders and the three license copies under `licenses/` |
 | Build | `npm run pack` (equivalent to `wxt build -b edge && wxt zip -b edge`) |
@@ -161,7 +161,7 @@ The settings screenshot shows a fresh install, where clipboard clearing is off a
 ## 7. Submission steps
 
 1. Open `https://partner.microsoft.com/dashboard/microsoftedge` and sign in with a Microsoft account. First-time visitors choose "Register for the Microsoft Edge program". Registration is free and needs no credit card.
-2. "Edge extensions" dashboard → New extension → upload `.output/mercury-2fa-0.8.2-edge.zip`. The system parses the manifest; continue once no red error appears.
+2. "Edge extensions" dashboard → New extension → upload `.output/mercury-2fa-0.8.3-edge.zip`. The system parses the manifest; continue once no red error appears.
 3. Properties
    - Category: Productivity
    - Privacy policy URL: https://theme26.github.io/mercury-2fa/privacy.html

@@ -669,3 +669,7 @@ button {
   border-color: var(--accent);
   opacity: 0.85;
 }
+
+.hint.warn {
+  color: #b45309;
+}

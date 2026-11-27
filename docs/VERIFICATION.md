@@ -24,7 +24,8 @@ Each row pairs a claim with the check behind it. Automated rows run under `npm t
 | Clipboard clearing path | in the offscreen document `navigator.clipboard.writeText` always fails with `Document is not focused`; `document.execCommand('copy')` returns `true` when `clipboardWrite` is held and `false` when it is not, so clearing depends on that one permission |
 | Clipboard permission split | fresh profile, `clipboardWrite` under `optional_permissions`: `permissions.contains` reports false, copying from the popup still succeeds, offscreen clearing returns false. The same build with the permission declared required reports true and clears |
 | Clipboard opt-in UI | without the permission, Settings shows "Clearing is off" and an enable button, and the copy toast reads `Copied`; with it, the delay selector and `Copied · clears in 30 s` appear |
-| Toolbar badge timing | fresh profile: no badge with an empty vault; one entry and no export gives `!` within 300 ms; exporting clears it immediately; deleting the last entry leaves it clear; reloading the extension keeps it clear |
+| Toolbar badge gone | with entries and no export, `chrome.action.getBadgeText` returns an empty string in every state: after the vault is created, after the first entry, after an export, with a 40-day-old export, and after reloading the extension |
+| Backup reminder in Settings | never exported: `Last export: never` plus an amber "No backup yet…" line; right after an export: date only, no amber line; with `lastBackupAt` moved 40 days back and the popup reopened: `Last export: … · 40 days ago` plus the stale warning |
 | Chunk isolation | popup chunk has zero matches for `argon2id` / `wrappedDek` / `AES-GCM` |
 | Type check | `tsc --noEmit` clean |
 | i18n key parity | all eight dictionaries hold the same key set, no empty entry, placeholders identical to English; a missing key fails the type check |

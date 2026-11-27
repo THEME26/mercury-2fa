@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { backupReminder } from '../../lib/backup-reminder';
 import { hasClipboardAccess, requestClipboardAccess } from '../../lib/clipboard';
 import { UserError } from '../../lib/errors';
 import { describeError } from '../../lib/i18n/describe-error';
@@ -91,6 +92,15 @@ export default function SettingsPanel({ status, language, onLanguageChange, onCh
       await vaultService.setSettings({ lockAfterMs: value });
       return t('settings.updatedLock');
     });
+
+  /** 图标不再挂角标，备份提醒只在这里出现：从未导出与过期分开措辞 */
+  const reminder = backupReminder(status.entryCount, status.settings.lastBackupAt, Date.now());
+  const backupNotice =
+    reminder === 'never'
+      ? t('settings.backupNever')
+      : reminder === 'stale'
+        ? t('settings.backupStale')
+        : '';
 
   /** 授权气泡挂在扩展图标上，必须由这次点击触发 */
   const enableClipboard = () =>
@@ -269,11 +279,8 @@ export default function SettingsPanel({ status, language, onLanguageChange, onCh
         <p className="hint">{t('settings.exportHint')}</p>
         <p className="hint">
           {t('settings.lastExport', { value: formatTime(status.settings.lastBackupAt) })}
-          {status.entryCount > 0 &&
-            (status.settings.lastBackupAt === undefined ||
-              Date.now() - status.settings.lastBackupAt > 30 * 86_400_000) &&
-            t('settings.backupOverdue')}
         </p>
+        {backupNotice && <p className="hint warn">{backupNotice}</p>}
 
         <div className="inline">
           <button className="btn ghost" onClick={() => fileRef.current?.click()}>

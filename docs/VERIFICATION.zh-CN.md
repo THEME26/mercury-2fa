@@ -24,7 +24,8 @@
 | 剪贴板清空路径 | offscreen 内 `navigator.clipboard.writeText` 必报 `Document is not focused`；`document.execCommand('copy')` 在持有 `clipboardWrite` 时返回 `true`，不持有则返回 `false`，清空取决于这一项权限 |
 | 剪贴板权限拆分 | 全新配置，`clipboardWrite` 位于 `optional_permissions`：`permissions.contains` 为 false，popup 内复制仍成功，offscreen 清空返回 false。同一份产物把该权限改为必需后，contains 为 true 且清空成功 |
 | 剪贴板选开界面 | 未授权时设置页显示「未开启」与授权按钮，复制提示只有 `Copied`；授权后出现延时下拉，提示为 `Copied · clears in 30 s` |
-| 图标角标时机 | 全新配置：空库无角标；加一条且未导出时 300 毫秒内出现 `!`；导出后立即消失；删掉最后一条仍为空；重载扩展后仍为空 |
+| 图标角标已移除 | 有条目且未导出时，`chrome.action.getBadgeText` 在各状态下均返回空串：建库后、加第一条后、导出后、导出时间为 40 天前、重载扩展后 |
+| 设置页备份提醒 | 从未导出：`上次导出：从未导出` 加一行琥珀色「还没有导出过备份……」；刚导出：只有日期，无琥珀色行；把 `lastBackupAt` 改到 40 天前并重开面板：`上次导出：… · 40 天前` 加过期提示 |
 | 分块隔离 | popup 分块中 `argon2id`、`wrappedDek`、`AES-GCM` 匹配数均为 0 |
 | 类型检查 | `tsc --noEmit` 0 错误 |
 | 词条对齐 | 八种语言的键集合完全相同、无空词条、占位符与英文一致；少键在类型检查阶段报错 |
