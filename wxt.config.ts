@@ -8,7 +8,7 @@ export default defineConfig({
     name: '__MSG_extName__',
     description: '__MSG_extDescription__',
     default_locale: 'en',
-    version: '0.8.0',
+    version: '0.8.1',
     key: EXTENSION_PUBLIC_KEY,
     icons: {
       16: 'icon/16.png',
@@ -17,15 +17,9 @@ export default defineConfig({
       128: 'icon/128.png',
     },
     /** activeTab 让用户点图标后临时获得当前标签页的注入权，脚本里不申请任何站点权限 */
-    permissions: [
-      'storage',
-      'clipboardWrite',
-      'idle',
-      'activeTab',
-      'scripting',
-      'alarms',
-      'offscreen',
-    ],
+    permissions: ['storage', 'idle', 'activeTab', 'scripting', 'alarms', 'offscreen'],
+    /** 只有「到点清空剪贴板」需要它：用户在设置里点了开关才申请 */
+    optional_permissions: ['clipboardWrite'],
     commands: {
       _execute_action: {
         suggested_key: { default: 'Alt+Shift+M', mac: 'Command+Shift+M' },

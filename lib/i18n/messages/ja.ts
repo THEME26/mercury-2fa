@@ -119,6 +119,9 @@ export const ja: Record<MessageKey, string> = {
   'settings.clipNever': 'コピー後もクリップボードを保持',
   'settings.clipSeconds': '{n}秒後にクリップボードを消去',
   'settings.clipMinutes': '{n}分後にクリップボードを消去',
+  'settings.clipDisabled': 'オフです。クリップボードの権限（任意）が必要です。オフのままでは、コピーしたコードは別の内容で上書きされるまで残ります。',
+  'settings.clipEnable': 'クリップボードの消去を許可',
+  'settings.clipEnabled': 'クリップボードの消去を有効にしました',
   'settings.clipboardHint':
     '時間が来るとバックグラウンドページがクリップボードを上書きします。その間にコピーした別の内容も消えます。拡張機能はクリップボードの読み取り権限を持たないため、自分が書いた内容かどうかを判別できません。',
   'settings.sectionPassword': 'マスターパスワードの変更',
@@ -206,6 +209,7 @@ export const ja: Record<MessageKey, string> = {
   'error.qr.capture': 'スクリーンショットに失敗しました',
   'error.qr.none': 'このページに QR コードが見つかりません',
   'error.qr.notOtp': 'QR コードは OTP の情報ではありません',
+  'error.clipboard.permission': 'クリップボードの権限が許可されませんでした',
 
   'fill.filled': '入力しました',
   'fill.filledSplit': '{n} 個の欄に入力しました',

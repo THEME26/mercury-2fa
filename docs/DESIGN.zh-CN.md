@@ -59,7 +59,20 @@ popup（界面）  --命令-->  service worker（路由 + 存储）  --命令-->
 
 ## 剪贴板
 
-复制动作留在 popup：那里有焦点与用户手势，写入最可靠。清空交给 offscreen，popup 关闭后即不存在，闹钟到点时需要一个仍然存活的上下文。
+复制动作留在 popup：那里有焦点与用户手势，`navigator.clipboard.writeText` 不依赖任何扩展权限就能成功。
+
+定时清空是唯一需要权限的环节。它在 offscreen 文档里执行，时间是 30 秒到 2 分钟之后，那里既无焦点也无手势；popup 此时已关闭，闹钟需要一个仍然存活的上下文。`navigator.clipboard.writeText('')` 会以 `Document is not focused` 被拒，`document.execCommand('copy')` 只在扩展持有 `clipboardWrite` 时返回 `true`。
+
+因此 `clipboardWrite` 放在 `optional_permissions` 里。Edge 158 实测：
+
+| 权限状态 | popup 内复制 | offscreen 内清空 |
+|---|---|---|
+| 未授予（刚装好的状态） | 成功 | `execCommand` 返回 `false` |
+| 已授予 | 成功 | 返回 `true` |
+
+安装提示里不再出现任何剪贴板访问项。设置里的「允许扩展清空剪贴板」按下时才发起申请，确认气泡归浏览器所有，申请必须发生在这次点击内，按钮是唯一入口。
+
+授权之后延时下拉出现。权限后来被收回时，延时值仍留在设置里；`shouldScheduleClear()` 要求延时非零且权限在手才创建闹钟，复制提示也会去掉「xx 后清空」那半句。
 
 `chrome.alarms` 到点后由 offscreen 调用 `navigator.clipboard.writeText('')`，失败则退到 `document.execCommand('copy')`。
 

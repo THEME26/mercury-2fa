@@ -122,6 +122,9 @@ export const ko: Record<MessageKey, string> = {
   'settings.clipNever': '복사해도 클립보드 유지',
   'settings.clipSeconds': '복사 후 {n}초 뒤 클립보드 삭제',
   'settings.clipMinutes': '복사 후 {n}분 뒤 클립보드 삭제',
+  'settings.clipDisabled': '꺼져 있습니다. 선택 권한인 클립보드 권한이 필요합니다. 끈 상태에서는 복사한 코드가 다른 내용으로 덮어쓰일 때까지 남습니다.',
+  'settings.clipEnable': '클립보드 지우기 허용',
+  'settings.clipEnabled': '클립보드 지우기를 켰습니다',
   'settings.clipboardHint':
     '시간이 되면 백그라운드 페이지가 클립보드를 덮어씁니다. 그 사이에 복사한 다른 내용도 함께 지워집니다. 확장은 클립보드를 읽을 권한이 없어 자기가 쓴 내용인지 구분할 수 없습니다.',
   'settings.oldPassword': '현재 마스터 비밀번호',
@@ -205,6 +208,7 @@ export const ko: Record<MessageKey, string> = {
   'error.qr.capture': '스크린샷에 실패했습니다',
   'error.qr.none': '이 페이지에서 QR 코드를 찾지 못했습니다',
   'error.qr.notOtp': 'QR 코드가 OTP 정보가 아닙니다',
+  'error.clipboard.permission': '클립보드 권한이 허용되지 않았습니다',
 
   'fill.filled': '입력했습니다',
   'fill.filledSplit': '{n}칸에 입력했습니다',

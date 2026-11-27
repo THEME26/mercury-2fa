@@ -117,6 +117,9 @@ export const zhCN: Record<MessageKey, string> = {
   'settings.clipNever': '复制后不清空',
   'settings.clipSeconds': '复制后 {n} 秒清空',
   'settings.clipMinutes': '复制后 {n} 分钟清空',
+  'settings.clipDisabled': '未开启。需要授予一项可选的剪贴板权限；不开启时，复制的验证码会留在剪贴板里，直到被其他内容替换。',
+  'settings.clipEnable': '允许扩展清空剪贴板',
+  'settings.clipEnabled': '已开启剪贴板清空',
   'settings.clipboardHint':
     '到点由后台覆写剪贴板。这期间复制了别的内容也会被一并清掉 —— 扩展不申请读取剪贴板的权限，分辨不出当前内容是不是自己写的。',
   'settings.sectionPassword': '更换主密码',
@@ -203,6 +206,7 @@ export const zhCN: Record<MessageKey, string> = {
   'error.qr.capture': '截图失败',
   'error.qr.none': '当前页没有识别到二维码',
   'error.qr.notOtp': '识别到的二维码不是验证码配置',
+  'error.clipboard.permission': '未获得剪贴板权限',
 
   'fill.filled': '已填入',
   'fill.filledSplit': '已填入 {n} 格',

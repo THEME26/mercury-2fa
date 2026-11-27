@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { scheduleClipboardClear } from '../../lib/clipboard';
+import { scheduleClipboardClear, hasClipboardAccess, shouldScheduleClear } from '../../lib/clipboard';
 import { describeError } from '../../lib/i18n/describe-error';
 import { useI18n } from '../../lib/i18n/react';
 import { getLanguagePreference, applyLanguagePreference } from '../../lib/i18n/preference';
@@ -93,8 +93,10 @@ export default function App() {
     try {
       await navigator.clipboard.writeText(view.code);
       const clearMs = status?.settings.clipboardClearMs ?? 0;
-      await scheduleClipboardClear(clearMs);
-      const delay = clearMs > 0 ? clearLabel(clearMs) : '';
+      /** 清空要跑在无焦点的 offscreen 里，只有拿到 clipboardWrite 才做得到 */
+      const scheduled = shouldScheduleClear(clearMs, clearMs > 0 && (await hasClipboardAccess()));
+      if (scheduled) await scheduleClipboardClear(clearMs);
+      const delay = scheduled ? clearLabel(clearMs) : '';
       if (view.type === 'hotp') {
         await vaultService.bumpCounter(view.id);
         await refresh();

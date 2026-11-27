@@ -1,4 +1,6 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { hasClipboardAccess, requestClipboardAccess } from '../../lib/clipboard';
+import { UserError } from '../../lib/errors';
 import { describeError } from '../../lib/i18n/describe-error';
 import { useI18n } from '../../lib/i18n/react';
 import { LOCALES, type Locale } from '../../lib/i18n/locales';
@@ -56,6 +58,12 @@ export default function SettingsPanel({ status, language, onLanguageChange, onCh
   const [report, setReport] = useState<SelfTestReport | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
+  /** null 表示还没问出结果，此时不渲染剪贴板控件，免得闪一下错误的形态 */
+  const [clipGranted, setClipGranted] = useState<boolean | null>(null);
+  useEffect(() => {
+    void hasClipboardAccess().then(setClipGranted);
+  }, []);
+
   const run = async (tag: string, action: () => Promise<string>) => {
     setBusy(tag);
     setError(null);
@@ -82,6 +90,18 @@ export default function SettingsPanel({ status, language, onLanguageChange, onCh
     run('lock', async () => {
       await vaultService.setSettings({ lockAfterMs: value });
       return t('settings.updatedLock');
+    });
+
+  /** 授权气泡挂在扩展图标上，必须由这次点击触发 */
+  const enableClipboard = () =>
+    run('clipPerm', async () => {
+      const granted = await requestClipboardAccess();
+      setClipGranted(granted);
+      if (!granted) throw new UserError('error.clipboard.permission');
+      if (status.settings.clipboardClearMs <= 0) {
+        await vaultService.setSettings({ clipboardClearMs: 30_000 });
+      }
+      return t('settings.clipEnabled');
     });
 
   const changePassword = () => {
@@ -174,27 +194,39 @@ export default function SettingsPanel({ status, language, onLanguageChange, onCh
 
       <div className="section">
         <div className="section-title">{t('settings.sectionClipboard')}</div>
-        <select
-          className="input"
-          value={status.settings.clipboardClearMs}
-          onChange={(event) =>
-            void run('clip', async () => {
-              await vaultService.setSettings({ clipboardClearMs: Number(event.target.value) });
-              return t('settings.updatedClipboard');
-            })
-          }
-        >
-          {CLIP_OPTIONS.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.kind === 'never'
-                ? t('settings.clipNever')
-                : option.kind === 'seconds'
-                  ? t('settings.clipSeconds', { n: option.n })
-                  : t('settings.clipMinutes', { n: option.n })}
-            </option>
-          ))}
-        </select>
-        <p className="hint">{t('settings.clipboardHint')}</p>
+        {clipGranted === false && (
+          <>
+            <p className="hint">{t('settings.clipDisabled')}</p>
+            <button className="btn" onClick={enableClipboard} disabled={busy !== null}>
+              {t('settings.clipEnable')}
+            </button>
+          </>
+        )}
+        {clipGranted === true && (
+          <>
+            <select
+              className="input"
+              value={status.settings.clipboardClearMs}
+              onChange={(event) =>
+                void run('clip', async () => {
+                  await vaultService.setSettings({ clipboardClearMs: Number(event.target.value) });
+                  return t('settings.updatedClipboard');
+                })
+              }
+            >
+              {CLIP_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.kind === 'never'
+                    ? t('settings.clipNever')
+                    : option.kind === 'seconds'
+                      ? t('settings.clipSeconds', { n: option.n })
+                      : t('settings.clipMinutes', { n: option.n })}
+                </option>
+              ))}
+            </select>
+            <p className="hint">{t('settings.clipboardHint')}</p>
+          </>
+        )}
       </div>
 
       <div className="section">

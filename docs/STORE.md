@@ -1,6 +1,6 @@
 # Edge Store Submission: Materials and Steps
 
-Version 0.8.0. Each block below can be copied into the Partner Center form as it stands. Update this file whenever the extension changes.
+Version 0.8.1. Each block below can be copied into the Partner Center form as it stands. Update this file whenever the extension changes.
 
 **English** | [简体中文](STORE.zh-CN.md)
 
@@ -9,7 +9,7 @@ Version 0.8.0. Each block below can be copied into the Partner Center form as it
 | Field | Value |
 |---|---|
 | Name (from manifest, not editable) | Mercury 2FA |
-| Version | 0.8.0 |
+| Version | 0.8.1 |
 | Category | Productivity |
 | Language | English (default), plus Simplified Chinese, Traditional Chinese, Japanese, Korean, German, French and Spanish; the user switches inside Settings |
 | Single purpose | Generate and fill two-factor codes on the local device |
@@ -85,7 +85,7 @@ Chinese:
 | Permission | Text to submit |
 |---|---|
 | `storage` | Store TOTP secrets encrypted with AES-GCM-256, plus user settings. Without it nothing can be persisted. |
-| `clipboardWrite` | Copy the six-digit code to the clipboard when the user clicks an entry, then clear it on a timer from the background page so the code does not linger. |
+| `clipboardWrite` (optional) | Clear the clipboard on a timer after the user copies a code, so it does not linger. The permission is declared optional and requested only when the user presses "Allow clipboard clearing" in Settings; copying works without it. |
 | `idle` | Drop the decryption key from memory as soon as the system goes idle or the screen locks, shortening the exposure window. |
 | `activeTab` | Grants temporary access to the current tab only after the user clicks the toolbar icon, in order to write the code into that page's verification field. No access occurs otherwise. |
 | `scripting` | Execute a self-contained function inside the activeTab grant that writes the code into the input and dispatches an input event. The function does not read page content. |
@@ -93,6 +93,8 @@ Chinese:
 | `offscreen` | Run Argon2id derivation, decryption and code generation in an invisible background document so the UI process never touches secrets or keys. |
 
 Site permissions: none. Neither `host_permissions` nor `content_scripts` is requested.
+
+`clipboardWrite` is the only optional permission. Reviewers testing a fresh install will not see it in the install prompt, and clipboard clearing stays off until it is granted.
 
 ## 4. Remote code declaration
 
@@ -141,14 +143,16 @@ npm run shots -- zh-CN     # Chinese, writes docs/live/zh-CN/
 npm run assets             # both banner sets -> docs/store/
 ```
 
+The settings screenshot shows a fresh install, where clipboard clearing is off and the enable button is visible. That is the state a reviewer will see after installing.
+
 `npm run assets` also overwrites `docs/list.png`, `docs/scan.png`, `docs/settings.png` and `docs/lock.png`, which the README embeds. Adding a language means adding its label set to `LABELS` in `tools/shoot-store.mjs`, capturing that set, then adding its captions to `SHOTS` in `tools/make-assets.mjs`.
 
 ### 6.2 Install package
 
 | Item | Value |
 |---|---|
-| File | `.output/mercury-2fa-0.8.0-edge.zip` |
-| Size | 561 KB (1.36 MB unpacked) |
+| File | `.output/mercury-2fa-0.8.1-edge.zip` |
+| Size | 562 KB (1.43 MB unpacked) |
 | Structure | `manifest.json` at the archive root, 25 files, including the eight `_locales` folders and the three license copies under `licenses/` |
 | Build | `npm run pack` (equivalent to `wxt build -b edge && wxt zip -b edge`) |
 
@@ -157,7 +161,7 @@ npm run assets             # both banner sets -> docs/store/
 ## 7. Submission steps
 
 1. Open `https://partner.microsoft.com/dashboard/microsoftedge` and sign in with a Microsoft account. First-time visitors choose "Register for the Microsoft Edge program". Registration is free and needs no credit card.
-2. "Edge extensions" dashboard → New extension → upload `.output/mercury-2fa-0.8.0-edge.zip`. The system parses the manifest; continue once no red error appears.
+2. "Edge extensions" dashboard → New extension → upload `.output/mercury-2fa-0.8.1-edge.zip`. The system parses the manifest; continue once no red error appears.
 3. Properties
    - Category: Productivity
    - Privacy policy URL: https://theme26.github.io/mercury-2fa/privacy.html
@@ -223,7 +227,7 @@ Filing and content compliance fall outside this process.
 
 ## 10. Pre-submission checklist
 
-- [x] `npm test` — all 164 tests pass
+- [x] `npm test` — all 168 tests pass
 - [x] `npm run compile` — 0 errors
 - [x] `npm run build` and `npm run build:edge` both succeed
 - [x] `manifest.json` has no `host_permissions` and no `content_scripts`

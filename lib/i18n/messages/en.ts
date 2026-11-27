@@ -130,6 +130,9 @@ export const en = {
   'settings.clipNever': 'Keep the clipboard after copying',
   'settings.clipSeconds': 'Clear the clipboard after {n} s',
   'settings.clipMinutes': 'Clear the clipboard after {n} min',
+  'settings.clipDisabled': 'Clearing is off. It needs one optional clipboard permission; copied codes stay in the clipboard until something replaces them.',
+  'settings.clipEnable': 'Allow clipboard clearing',
+  'settings.clipEnabled': 'Clipboard clearing enabled',
   'settings.clipboardHint':
     'The background page overwrites the clipboard when the timer fires. Anything else copied in that window is wiped too — the extension has no read access to the clipboard, so it cannot tell what it wrote.',
   'settings.sectionPassword': 'Change master password',
@@ -219,6 +222,7 @@ export const en = {
   'error.qr.capture': 'The screenshot failed',
   'error.qr.none': 'No QR code found on this page',
   'error.qr.notOtp': 'The QR code is not an OTP payload',
+  'error.clipboard.permission': 'The clipboard permission was not granted',
 
   // 填入
   'fill.filled': 'Filled',

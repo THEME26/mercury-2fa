@@ -10,7 +10,7 @@ Two-factor authenticator (TOTP) for Chrome and Edge. Codes are computed on this 
 |---|---|
 | ![Code list](docs/list.png) | ![Import](docs/scan.png) |
 
-Version 0.8.0. Eight interface languages, QR import, encrypted backup. No site permissions at install time.
+Version 0.8.1. Eight interface languages, QR import, encrypted backup. No site permissions at install, and clipboard clearing stays off until you grant it in Settings.
 
 ## Install
 
@@ -37,7 +37,7 @@ The unpacked install references the build directory in place: moving or deleting
 4. On a login page, click the icon and press "Fill <site>". The code goes into the field the extension recognises.
 5. Export an encrypted backup from Settings. Without one for 30 days the badge turns into an amber `!`.
 
-Settings holds auto-lock (5 / 15 / 30 / 60 minutes idle), clipboard clearing (30 seconds / 1 minute / 2 minutes / never), password change, backup export and restore, a four-check self test, and the interface language.
+Settings holds auto-lock (5 / 15 / 30 / 60 minutes idle), clipboard clearing (off until enabled, then 30 seconds / 1 minute / 2 minutes / never), password change, backup export and restore, a four-check self test, and the interface language.
 
 ### First account on GitHub
 
@@ -57,7 +57,7 @@ Settings holds auto-lock (5 / 15 / 30 / 60 minutes idle), clipboard clearing (30
 | Add and import | Manual entry, Google Authenticator migration code, Aegis, 2FAS, andOTP, Bitwarden exports, otpauth URI lists. |
 | QR scan | Captures the current tab and decodes it locally. |
 | Autofill | Injects into the current tab after a click; handles six-box split inputs, shadow DOM, and React/Vue controlled inputs. |
-| Clipboard | Copied codes are overwritten by the extension after the configured delay. |
+| Clipboard | Copying works as installed. Clearing the clipboard afterwards is opt-in and needs one optional permission. |
 | Backup | Encrypted export and restore, entry count checked on restore, password change re-wraps the key only. |
 | Warnings | Shared-seed marking; backup age badge. |
 | Languages | Eight locales, English default. |
@@ -94,7 +94,7 @@ A missing key in any of the eight dictionaries fails the type check. `tests/i18n
 
 ```bash
 npm install
-npm test               # 164 tests
+npm test               # 168 tests
 npm run compile        # tsc --noEmit
 npm run build          # .output/chrome-mv3
 npm run build:edge     # .output/edge-mv3
@@ -105,7 +105,7 @@ npm run shots          # retake source screenshots from a real Edge build
 npm run shots -- zh-CN # the same for the Chinese set
 ```
 
-The packaged extension is 561 KB, 1.42 MB unpacked across 25 files, of which 946 KB is the QR decoder wasm.
+The packaged extension is 562 KB, 1.43 MB unpacked across 25 files, of which 946 KB is the QR decoder wasm.
 
 ## Documentation
 

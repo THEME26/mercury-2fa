@@ -6,7 +6,7 @@ Each row pairs a claim with the check behind it. Automated rows run under `npm t
 
 | Item | Check |
 |---|---|
-| Unit tests | **164** passing |
+| Unit tests | **168** passing |
 | RFC 4226 HOTP vectors (10) | all match |
 | RFC 6238 six timestamps × SHA1/256/512 | 18 of 18 match |
 | Command whitelist | unknown op / wrong target / missing field / oversized text / injected extra fields, each rejected |
@@ -21,14 +21,16 @@ Each row pairs a claim with the check behind it. Automated rows run under `npm t
 | Browser QR | real build plus bundled wasm: "Scan QR on this page" recognises the otpauth URI, fills the input, previews "GitHub alice@example.com TOTP·6 digits" |
 | Reload locks | reopening the page with the same profile rebuilds the host and returns to "Vault is locked" |
 | Edge 158 end to end | unpacked load: set master password → create vault → add GitHub → UI shows `948 544`, matching a local RFC 6238 computation; `chrome.storage` really is `undefined` in offscreen, and the flow still works |
-| Clipboard clearing path | in the offscreen document `navigator.clipboard.writeText` always fails with `Document is not focused`; `document.execCommand('copy')` returns `true`, so clearing uses the latter |
+| Clipboard clearing path | in the offscreen document `navigator.clipboard.writeText` always fails with `Document is not focused`; `document.execCommand('copy')` returns `true` when `clipboardWrite` is held and `false` when it is not, so clearing depends on that one permission |
+| Clipboard permission split | fresh profile, `clipboardWrite` under `optional_permissions`: `permissions.contains` reports false, copying from the popup still succeeds, offscreen clearing returns false. The same build with the permission declared required reports true and clears |
+| Clipboard opt-in UI | without the permission, Settings shows "Clearing is off" and an enable button, and the copy toast reads `Copied`; with it, the delay selector and `Copied · clears in 30 s` appear |
 | Chunk isolation | popup chunk has zero matches for `argon2id` / `wrappedDek` / `AES-GCM` |
 | Type check | `tsc --noEmit` clean |
 | i18n key parity | all eight dictionaries hold the same key set, no empty entry, placeholders identical to English; a missing key fails the type check |
 | i18n in a real browser | unpacked build in Edge: first screen English, language switch to `ja` re-renders every panel immediately, after a reload the list and the lock screen are still Japanese, switch back to `en` restores it |
 | Manifest localization | `chrome.runtime.getManifest().name` resolves to `Mercury 2FA`, `chrome.i18n.getMessage('extDescription')` returns the localized description, `_locales` for eight languages ship in the zip |
 | Document language | `<html lang>` matches the rendered language on the first frame, including the initial English case where the locale never changes |
-| Artifact | 1.42 MB unpacked (946 KB of that is wasm), permissions `storage`, `idle`, `clipboardWrite`, `activeTab`, `scripting`, `alarms`, `offscreen`, no `host_permissions` |
+| Artifact | 1.43 MB unpacked (946 KB of that is wasm), permissions `storage`, `idle`, `activeTab`, `scripting`, `alarms`, `offscreen`; `clipboardWrite` declared optional; no `host_permissions` |
 
 ## Not verified
 

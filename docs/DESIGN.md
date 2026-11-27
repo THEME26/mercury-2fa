@@ -59,7 +59,20 @@ The fill function is self-contained. It is serialized into the page and receives
 
 ## Clipboard
 
-The copy action stays in the popup: it has focus and a user gesture, which makes the write reliable. Clearing is delegated to the offscreen document, because the popup no longer exists once closed and something has to be alive when the alarm fires.
+The copy action stays in the popup: it has focus and a user gesture, so `navigator.clipboard.writeText` succeeds there without any extension permission.
+
+Clearing is the part that needs one. It runs in the offscreen document anywhere from 30 seconds to two minutes later, where there is no focus and no gesture; the popup no longer exists at that point, and the alarm needs a live context to run in. `navigator.clipboard.writeText('')` rejects with `Document is not focused`, and `document.execCommand('copy')` returns `true` only while the extension holds `clipboardWrite`.
+
+`clipboardWrite` therefore sits in `optional_permissions`. Measured in Edge 158:
+
+| Permission state | Copy from the popup | Clear from offscreen |
+|---|---|---|
+| Not granted, which is what a fresh install has | succeeds | `execCommand` returns `false` |
+| Granted | succeeds | returns `true` |
+
+The install prompt lists no clipboard access at all. Settings asks for the permission when "Allow clipboard clearing" is pressed; the confirmation bubble belongs to the browser and the request has to be made inside that click, so the button is the only entry point.
+
+After a grant the delay selector appears. If the permission is revoked later, the delay stays in the settings blob; `shouldScheduleClear()` requires both a non-zero delay and a live permission before an alarm is created, and the copy toast drops its "clears in 30 s" half.
 
 A `chrome.alarms` entry calls `navigator.clipboard.writeText('')` in the offscreen document, falling back to `document.execCommand('copy')`.
 

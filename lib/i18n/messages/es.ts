@@ -123,6 +123,9 @@ export const es: Record<MessageKey, string> = {
   'settings.clipNever': 'Conservar el portapapeles',
   'settings.clipSeconds': 'Borrar el portapapeles en {n} s',
   'settings.clipMinutes': 'Borrar el portapapeles en {n} min',
+  'settings.clipDisabled': 'Desactivado. Requiere un permiso opcional del portapapeles; si no, los códigos copiados permanecen hasta que otro contenido los sustituya.',
+  'settings.clipEnable': 'Permitir borrar el portapapeles',
+  'settings.clipEnabled': 'Borrado del portapapeles activado',
   'settings.clipboardHint':
     'La página de fondo sobrescribe el portapapeles al vencer el plazo. Lo que se copie mientras tanto también se borra: la extensión no puede leer el portapapeles y no distingue su propio contenido.',
   'settings.sectionPassword': 'Cambiar la contraseña maestra',
@@ -212,6 +215,7 @@ export const es: Record<MessageKey, string> = {
   'error.qr.capture': 'La captura ha fallado',
   'error.qr.none': 'No se encontró ningún código QR en esta página',
   'error.qr.notOtp': 'El código QR no contiene datos OTP',
+  'error.clipboard.permission': 'No se concedió el permiso del portapapeles',
 
   'fill.filled': 'Rellenado',
   'fill.filledSplit': 'Rellenadas {n} casillas',

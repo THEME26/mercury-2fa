@@ -2,14 +2,14 @@
 
 [English](STORE.md) | **简体中文**
 
-版本 0.8.0。本文件按「逐项复制进表单」组织，代码变更后回来同步。
+版本 0.8.1。本文件按「逐项复制进表单」组织，代码变更后回来同步。
 
 ## 一、基本信息
 
 | 字段 | 值 |
 |---|---|
 | 名称（取自 manifest，不可改） | Mercury 2FA |
-| 版本 | 0.8.0 |
+| 版本 | 0.8.1 |
 | 类别 | Productivity |
 | 语言 | 英文（默认），另有简体中文、繁体中文、日文、韩文、德文、法文、西班牙文，设置内切换 |
 | 单一用途 | 在本机生成并填写两步验证验证码 |
@@ -57,7 +57,7 @@
 | 权限 | 提交文本 |
 |---|---|
 | `storage` | 保存经过 AES-GCM-256 加密的验证码种子与用户设置。无此权限无法持久化任何数据。 |
-| `clipboardWrite` | 用户点击条目时把 6 位验证码复制到剪贴板；到期后由后台页面清空，避免验证码长期留在剪贴板。 |
+| `clipboardWrite`（可选） | 用户复制验证码后按时清空剪贴板，避免验证码长期停留。该权限声明为可选，仅在用户点「允许扩展清空剪贴板」时申请；不授权也能正常复制。 |
 | `idle` | 系统空闲或锁屏时立即从内存中丢弃解密密钥，缩短密钥暴露窗口。 |
 | `activeTab` | 仅在用户点击扩展图标后获得当前标签页的临时访问权，用于把验证码写入页面的验证码输入框。不使用时不产生任何访问。 |
 | `scripting` | 在 activeTab 授权范围内执行一段自包含函数，把验证码写入输入框并派发 input 事件。该函数不读取页面内容。 |
@@ -65,6 +65,8 @@
 | `offscreen` | 在不可见的后台文档中完成 Argon2id 派生、解密与取码，使界面进程接触不到种子与密钥。 |
 
 站点权限：无。`host_permissions` 与 `content_scripts` 均未申请。
+
+`clipboardWrite` 是唯一的可选权限。审核方全新安装时不会在权限提示里看到它，剪贴板清空在授权前保持关闭。
 
 ## 四、远程代码声明
 
@@ -113,14 +115,16 @@ npm run shots -- zh-CN     # 中文，写 docs/live/zh-CN/
 npm run assets             # 两套一起出图到 docs/store/
 ```
 
+设置页截图取自全新安装状态，此时剪贴板清空未开启、授权按钮可见，与审核方装好后的界面一致。
+
 `npm run assets` 同时把干净版本覆盖到 `docs/list.png`、`docs/scan.png`、`docs/settings.png`、`docs/lock.png`，README 内嵌图随之更新。新增语言时要改 `tools/shoot-store.mjs` 的 `LABELS` 与 `tools/make-assets.mjs` 的 `SHOTS` 两处。
 
 ### 2. 安装包
 
 | 项目 | 值 |
 |---|---|
-| 文件 | `.output/mercury-2fa-0.8.0-edge.zip` |
-| 大小 | 561 KB（解压后 1.36 MB） |
+| 文件 | `.output/mercury-2fa-0.8.1-edge.zip` |
+| 大小 | 562 KB（解压后 1.43 MB） |
 | 结构 | `manifest.json` 在压缩包根目录，25 个文件，含八个 `_locales` 目录与 `licenses/` 三份许可证副本 |
 | 生成 | `npm run pack`（等价于 `wxt build -b edge && wxt zip -b edge`） |
 
@@ -197,7 +201,7 @@ English version:
 
 ## 十、提交前检查
 
-- [x] `npm test` 164 项全通过
+- [x] `npm test` 168 项全通过
 - [x] `npm run compile` 0 错误
 - [x] `npm run build` 与 `npm run build:edge` 均成功
 - [x] `manifest.json` 无 `host_permissions`，无 `content_scripts`

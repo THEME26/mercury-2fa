@@ -123,6 +123,9 @@ export const fr: Record<MessageKey, string> = {
   'settings.clipNever': 'Conserver le presse-papiers',
   'settings.clipSeconds': 'Effacer le presse-papiers dans {n} s',
   'settings.clipMinutes': 'Effacer le presse-papiers dans {n} min',
+  'settings.clipDisabled': 'Désactivé. Une autorisation facultative du presse-papiers est nécessaire ; sinon les codes copiés y restent jusqu’à remplacement.',
+  'settings.clipEnable': 'Autoriser l’effacement du presse-papiers',
+  'settings.clipEnabled': 'Effacement du presse-papiers activé',
   'settings.clipboardHint':
     'La page d’arrière-plan écrase le presse-papiers à l’échéance. Tout autre contenu copié entre-temps disparaît aussi : l’extension n’a pas le droit de lire le presse-papiers et ne peut pas distinguer son propre contenu.',
   'settings.sectionPassword': 'Changer le mot de passe principal',
@@ -212,6 +215,7 @@ export const fr: Record<MessageKey, string> = {
   'error.qr.capture': 'La capture a échoué',
   'error.qr.none': 'Aucun QR code trouvé sur cette page',
   'error.qr.notOtp': 'Le QR code ne contient pas de données OTP',
+  'error.clipboard.permission': 'L’autorisation du presse-papiers n’a pas été accordée',
 
   'fill.filled': 'Rempli',
   'fill.filledSplit': 'Rempli {n} cases',

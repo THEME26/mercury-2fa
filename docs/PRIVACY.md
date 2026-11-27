@@ -20,7 +20,7 @@ The extension has no code path that sends data anywhere: it requests no `host_pe
 | Permission | Purpose |
 |---|---|
 | `storage` | Store the encrypted vault and settings |
-| `clipboardWrite` | Copy a code to the clipboard and clear it on expiry |
+| `clipboardWrite` (optional) | Clear the clipboard on a timer after a code is copied. Requested only when the user turns clearing on in Settings; copying works without it |
 | `idle` | Drop the key from memory when the system goes idle or the screen locks |
 | `activeTab` | Write a code into the current tab after the toolbar icon is clicked |
 | `scripting` | Perform that write |

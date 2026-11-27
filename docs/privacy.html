@@ -60,7 +60,7 @@
     <thead><tr><th>Permission</th><th>Purpose</th></tr></thead>
     <tbody>
       <tr><td><code>storage</code></td><td>Store the encrypted vault and settings</td></tr>
-      <tr><td><code>clipboardWrite</code></td><td>Copy a code to the clipboard and clear it on expiry</td></tr>
+      <tr><td><code>clipboardWrite</code> (optional)</td><td>Clear the clipboard on a timer after a code is copied. Requested only when the user turns clearing on in Settings; copying works without it</td></tr>
       <tr><td><code>idle</code></td><td>Drop the key from memory when the system goes idle or the screen locks</td></tr>
       <tr><td><code>activeTab</code></td><td>Write a code into the current tab after the toolbar icon is clicked</td></tr>
       <tr><td><code>scripting</code></td><td>Perform that write</td></tr>
@@ -96,7 +96,7 @@
       <thead><tr><th>权限</th><th>用途</th></tr></thead>
       <tbody>
         <tr><td><code>storage</code></td><td>保存加密后的保险库与设置</td></tr>
-        <tr><td><code>clipboardWrite</code></td><td>把验证码写入剪贴板，并在到期后清空</td></tr>
+        <tr><td><code>clipboardWrite</code>（可选）</td><td>复制验证码后按时清空剪贴板。仅在用户在设置里开启清空时申请，不授权也能正常复制</td></tr>
         <tr><td><code>idle</code></td><td>系统空闲或锁屏时立即丢弃内存中的密钥</td></tr>
         <tr><td><code>activeTab</code></td><td>用户点开扩展图标后，向当前标签页写入验证码</td></tr>
         <tr><td><code>scripting</code></td><td>执行上述写入动作所需的注入</td></tr>

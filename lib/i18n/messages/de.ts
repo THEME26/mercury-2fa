@@ -123,6 +123,9 @@ export const de: Record<MessageKey, string> = {
   'settings.clipNever': 'Zwischenablage behalten',
   'settings.clipSeconds': 'Zwischenablage nach {n} s löschen',
   'settings.clipMinutes': 'Zwischenablage nach {n} Min. löschen',
+  'settings.clipDisabled': 'Aus. Dafür ist eine optionale Berechtigung für die Zwischenablage nötig; kopierte Codes bleiben sonst, bis etwas anderes sie überschreibt.',
+  'settings.clipEnable': 'Löschen der Zwischenablage erlauben',
+  'settings.clipEnabled': 'Löschen der Zwischenablage aktiviert',
   'settings.clipboardHint':
     'Zum Ablauf überschreibt die Hintergrundseite die Zwischenablage. Anderes Kopiertes in diesem Zeitraum wird mitgelöscht — die Erweiterung darf die Zwischenablage nicht lesen und erkennt ihren eigenen Inhalt nicht.',
   'settings.sectionPassword': 'Master-Passwort ändern',
@@ -212,6 +215,7 @@ export const de: Record<MessageKey, string> = {
   'error.qr.capture': 'Der Screenshot ist fehlgeschlagen',
   'error.qr.none': 'Auf dieser Seite wurde kein QR-Code gefunden',
   'error.qr.notOtp': 'Der QR-Code enthält keine OTP-Daten',
+  'error.clipboard.permission': 'Die Berechtigung für die Zwischenablage wurde nicht erteilt',
 
   'fill.filled': 'Eingetragen',
   'fill.filledSplit': 'In {n} Felder eingetragen',

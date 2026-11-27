@@ -117,6 +117,9 @@ export const zhTW: Record<MessageKey, string> = {
   'settings.clipNever': '複製後不清除',
   'settings.clipSeconds': '複製後 {n} 秒清除',
   'settings.clipMinutes': '複製後 {n} 分鐘清除',
+  'settings.clipDisabled': '未開啟。需要授予一項可選的剪貼簿權限；未開啟時，複製的驗證碼會留在剪貼簿裡，直到被其他內容取代。',
+  'settings.clipEnable': '允許擴充功能清空剪貼簿',
+  'settings.clipEnabled': '已開啟剪貼簿清空',
   'settings.clipboardHint':
     '時間到由背景頁覆寫剪貼簿。這段期間複製的其他內容也會一併被清掉 —— 擴充功能沒有讀取剪貼簿的權限，分辨不出目前內容是不是自己寫的。',
   'settings.sectionPassword': '更換主密碼',
@@ -203,6 +206,7 @@ export const zhTW: Record<MessageKey, string> = {
   'error.qr.capture': '截圖失敗',
   'error.qr.none': '目前頁面沒有辨識到 QR 碼',
   'error.qr.notOtp': '辨識到的 QR 碼不是驗證碼設定',
+  'error.clipboard.permission': '未取得剪貼簿權限',
 
   'fill.filled': '已填入',
   'fill.filledSplit': '已填入 {n} 格',
