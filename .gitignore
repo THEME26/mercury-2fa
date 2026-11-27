@@ -6,3 +6,4 @@ stats.html
 keys/*.pem
 .preview/
 .probe/
+.workbuddy/
