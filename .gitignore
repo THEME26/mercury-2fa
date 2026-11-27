@@ -7,3 +7,5 @@ keys/*.pem
 .preview/
 .probe/
 .workbuddy/
+# 导出的加密备份含种子，放进仓库目录也不入库
+*backup*.json
